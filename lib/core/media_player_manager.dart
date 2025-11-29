@@ -11,14 +11,14 @@ import '../core/player_state.dart';
 /// Users can wrap this with their preferred state management (GetX, Riverpod, Bloc, etc.)
 class MediaPlayerManager {
   final PlayerctlService _service;
-  
+
   // Internal state
   PlayerState _state = PlayerState.initial();
-  
+
   // Stream controllers for reactive updates
-  final StreamController<PlayerState> _stateController = 
+  final StreamController<PlayerState> _stateController =
       StreamController<PlayerState>.broadcast();
-  
+
   StreamSubscription? _metadataSubscription;
   Timer? _playerCheckTimer;
   Timer? _volumeSyncTimer;
@@ -26,8 +26,8 @@ class MediaPlayerManager {
   bool _isRefreshing = false;
 
   /// Constructor with optional dependency injection
-  MediaPlayerManager({PlayerctlService? service}) 
-      : _service = service ?? PlayerctlService();
+  MediaPlayerManager({PlayerctlService? service})
+    : _service = service ?? PlayerctlService();
 
   /// Get current state (synchronous)
   PlayerState get state => _state;
@@ -69,14 +69,17 @@ class MediaPlayerManager {
       _updateState(_state.copyWith(isPlayerctlInstalled: installed));
 
       if (!installed) {
-        _updateState(_state.copyWith(
-          errorMessage: 'playerctl is not installed on this system.\n'
-              'Please install it using:\n'
-              'sudo apt install playerctl (Debian/Ubuntu)\n'
-              'sudo pacman -S playerctl (Arch)\n'
-              'sudo dnf install playerctl (Fedora)',
-          isLoading: false,
-        ));
+        _updateState(
+          _state.copyWith(
+            errorMessage:
+                'playerctl is not installed on this system.\n'
+                'Please install it using:\n'
+                'sudo apt install playerctl (Debian/Ubuntu)\n'
+                'sudo pacman -S playerctl (Arch)\n'
+                'sudo dnf install playerctl (Fedora)',
+            isLoading: false,
+          ),
+        );
         return;
       }
 
@@ -102,10 +105,12 @@ class MediaPlayerManager {
 
       _updateState(_state.copyWith(isLoading: false));
     } catch (e) {
-      _updateState(_state.copyWith(
-        errorMessage: 'Error initializing: $e',
-        isLoading: false,
-      ));
+      _updateState(
+        _state.copyWith(
+          errorMessage: 'Error initializing: $e',
+          isLoading: false,
+        ),
+      );
     }
   }
 
@@ -116,16 +121,16 @@ class MediaPlayerManager {
       debugPrint('📋 Skipping refresh - already in progress');
       return;
     }
-    
+
     _isRefreshing = true;
     try {
       final players = await _service.getAvailablePlayers();
       final hasPlayer = players.isNotEmpty;
       final previousSelected = _state.selectedPlayer;
-      
+
       String selected = _state.selectedPlayer;
       bool needsReconnect = false;
-      
+
       // Case 1: No players available
       if (players.isEmpty) {
         selected = '';
@@ -141,32 +146,36 @@ class MediaPlayerManager {
       else if (!players.contains(selected)) {
         selected = players.first;
         needsReconnect = true;
-        debugPrint('📋 Selected player "$previousSelected" no longer available, switching to: $selected');
+        debugPrint(
+          '📋 Selected player "$previousSelected" no longer available, switching to: $selected',
+        );
       }
       // Case 4: Selected player still exists (no change needed)
       else {
         debugPrint('📋 Current player "$selected" still available');
       }
 
-      _updateState(_state.copyWith(
-        availablePlayers: players,
-        hasActivePlayer: hasPlayer,
-        selectedPlayer: selected,
-        currentMedia: hasPlayer ? _state.currentMedia : MediaInfo.empty(),
-      ));
-      
+      _updateState(
+        _state.copyWith(
+          availablePlayers: players,
+          hasActivePlayer: hasPlayer,
+          selectedPlayer: selected,
+          currentMedia: hasPlayer ? _state.currentMedia : MediaInfo.empty(),
+        ),
+      );
+
       // If we switched to a different player, reconnect
       if (needsReconnect && hasPlayer && selected != previousSelected) {
         debugPrint('📋 Reconnecting to new player: $selected');
-        
+
         // Stop all current syncing
         stopListening();
         _stopVolumeSync();
         _stopMetadataRefresh();
-        
+
         // Small delay to ensure clean disconnect
         await Future.delayed(const Duration(milliseconds: 100));
-        
+
         // Fetch metadata immediately for new player
         try {
           final metadata = await _service.getCurrentMetadata(selected);
@@ -176,12 +185,12 @@ class MediaPlayerManager {
         } catch (e) {
           debugPrint('Error fetching metadata for player $selected: $e');
         }
-        
+
         // Fetch current state
         await updateCurrentVolume();
         await updateShuffleStatus();
         await updateLoopStatus();
-        
+
         // Start listening and all sync timers
         startListening(selected);
         _startVolumeSync();
@@ -222,7 +231,9 @@ class MediaPlayerManager {
     _volumeSyncTimer?.cancel();
     debugPrint('🔊 Starting volume sync timer');
     _volumeSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
-      debugPrint('🔊 Volume sync timer tick - hasActivePlayer: ${_state.hasActivePlayer}, selectedPlayer: ${_state.selectedPlayer}');
+      debugPrint(
+        '🔊 Volume sync timer tick - hasActivePlayer: ${_state.hasActivePlayer}, selectedPlayer: ${_state.selectedPlayer}',
+      );
       if (_state.hasActivePlayer) {
         debugPrint('🔊 Calling updateCurrentVolume...');
         await updateCurrentVolume();
@@ -243,11 +254,17 @@ class MediaPlayerManager {
   void _startMetadataRefresh() {
     _metadataRefreshTimer?.cancel();
     debugPrint('🔄 Starting metadata refresh timer');
-    _metadataRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+    _metadataRefreshTimer = Timer.periodic(const Duration(seconds: 3), (
+      _,
+    ) async {
       if (_state.hasActivePlayer) {
-        debugPrint('🔄 Refreshing metadata for player: ${_state.selectedPlayer}');
+        debugPrint(
+          '🔄 Refreshing metadata for player: ${_state.selectedPlayer}',
+        );
         try {
-          final player = _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null;
+          final player = _state.selectedPlayer.isNotEmpty
+              ? _state.selectedPlayer
+              : null;
           final metadata = await _service.getCurrentMetadata(player);
           if (metadata.isNotEmpty) {
             _updateMediaInfo(metadata);
@@ -267,33 +284,38 @@ class MediaPlayerManager {
 
   /// Start listening to metadata changes
   void startListening([String? player]) {
-    final targetPlayer = player ?? 
+    final targetPlayer =
+        player ??
         (_state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null);
 
     _metadataSubscription?.cancel();
-    _metadataSubscription = _service.listenToMetadata(targetPlayer).listen(
-      (metadata) {
-        _updateMediaInfo(metadata);
-      },
-      onError: (error) {
-        if (error is NoPlayerException) {
-          _updateState(_state.copyWith(
-            currentMedia: MediaInfo.empty(),
-            hasActivePlayer: false,
-            errorMessage: 'No active media players found',
-          ));
-        } else {
-          debugPrint('Metadata stream error: $error');
-          _updateState(_state.copyWith(errorMessage: error.toString()));
-        }
-      },
-      onDone: () {
-        // Stream completed/closed - this might indicate process exit
-        debugPrint('Metadata stream closed, will check for active players');
-        // The periodic player check will handle reconnection if players are still available
-      },
-      cancelOnError: false, // Don't cancel on errors, let it try to recover
-    );
+    _metadataSubscription = _service
+        .listenToMetadata(targetPlayer)
+        .listen(
+          (metadata) {
+            _updateMediaInfo(metadata);
+          },
+          onError: (error) {
+            if (error is NoPlayerException) {
+              _updateState(
+                _state.copyWith(
+                  currentMedia: MediaInfo.empty(),
+                  hasActivePlayer: false,
+                  errorMessage: 'No active media players found',
+                ),
+              );
+            } else {
+              debugPrint('Metadata stream error: $error');
+              _updateState(_state.copyWith(errorMessage: error.toString()));
+            }
+          },
+          onDone: () {
+            // Stream completed/closed - this might indicate process exit
+            debugPrint('Metadata stream closed, will check for active players');
+            // The periodic player check will handle reconnection if players are still available
+          },
+          cancelOnError: false, // Don't cancel on errors, let it try to recover
+        );
   }
 
   /// Stop listening to metadata changes
@@ -323,20 +345,17 @@ class MediaPlayerManager {
   /// Switch to a different player
   Future<void> switchPlayer(String playerName) async {
     if (!_state.availablePlayers.contains(playerName)) {
-      _updateState(_state.copyWith(
-        errorMessage: 'Player $playerName is not available',
-      ));
+      _updateState(
+        _state.copyWith(errorMessage: 'Player $playerName is not available'),
+      );
       return;
     }
 
-    _updateState(_state.copyWith(
-      selectedPlayer: playerName,
-      isLoading: true,
-    ));
-    
+    _updateState(_state.copyWith(selectedPlayer: playerName, isLoading: true));
+
     // Stop current listener
     stopListening();
-    
+
     // Fetch current metadata immediately for the new player
     try {
       final metadata = await _service.getCurrentMetadata(playerName);
@@ -346,19 +365,19 @@ class MediaPlayerManager {
     } catch (e) {
       debugPrint('Error fetching metadata for player $playerName: $e');
     }
-    
+
     // Fetch current volume, shuffle, and loop status for the new player
     await updateCurrentVolume();
     await updateShuffleStatus();
     await updateLoopStatus();
-    
+
     // Start listening to the new player
     startListening(playerName);
-    
+
     // Restart volume sync and metadata refresh for the new player
     _startVolumeSync();
     _startMetadataRefresh();
-    
+
     _updateState(_state.copyWith(isLoading: false));
   }
 
@@ -368,7 +387,9 @@ class MediaPlayerManager {
       _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null,
     );
     if (!success) {
-      _updateState(_state.copyWith(errorMessage: 'Failed to toggle play/pause'));
+      _updateState(
+        _state.copyWith(errorMessage: 'Failed to toggle play/pause'),
+      );
     }
     return success;
   }
@@ -412,7 +433,9 @@ class MediaPlayerManager {
       _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null,
     );
     if (!success) {
-      _updateState(_state.copyWith(errorMessage: 'Failed to skip to next track'));
+      _updateState(
+        _state.copyWith(errorMessage: 'Failed to skip to next track'),
+      );
     }
     return success;
   }
@@ -423,14 +446,18 @@ class MediaPlayerManager {
       _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null,
     );
     if (!success) {
-      _updateState(_state.copyWith(errorMessage: 'Failed to skip to previous track'));
+      _updateState(
+        _state.copyWith(errorMessage: 'Failed to skip to previous track'),
+      );
     }
     return success;
   }
 
   /// Toggle shuffle
   Future<bool> toggleShuffle() async {
-    final player = _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null;
+    final player = _state.selectedPlayer.isNotEmpty
+        ? _state.selectedPlayer
+        : null;
     final success = await _service.toggleShuffle(player);
     if (success) {
       await updateShuffleStatus();
@@ -442,7 +469,9 @@ class MediaPlayerManager {
 
   /// Cycle through loop modes (None → Track → Playlist → None)
   Future<bool> cycleLoop() async {
-    final player = _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null;
+    final player = _state.selectedPlayer.isNotEmpty
+        ? _state.selectedPlayer
+        : null;
     final success = await _service.cycleLoop(player);
     if (success) {
       await updateLoopStatus();
@@ -455,9 +484,11 @@ class MediaPlayerManager {
   /// Update shuffle status from player
   Future<void> updateShuffleStatus() async {
     try {
-      final player = _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null;
+      final player = _state.selectedPlayer.isNotEmpty
+          ? _state.selectedPlayer
+          : null;
       final shuffleStatus = await _service.getShuffle(player);
-      
+
       if (shuffleStatus != null) {
         _updateState(_state.copyWith(shuffleStatus: shuffleStatus.trim()));
       }
@@ -470,9 +501,11 @@ class MediaPlayerManager {
   /// Update loop status from player
   Future<void> updateLoopStatus() async {
     try {
-      final player = _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null;
+      final player = _state.selectedPlayer.isNotEmpty
+          ? _state.selectedPlayer
+          : null;
       final loopStatus = await _service.getLoop(player);
-      
+
       if (loopStatus != null) {
         _updateState(_state.copyWith(loopStatus: loopStatus.trim()));
       }
@@ -499,13 +532,15 @@ class MediaPlayerManager {
   /// Get current volume
   Future<void> updateCurrentVolume() async {
     try {
-      final player = _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null;
+      final player = _state.selectedPlayer.isNotEmpty
+          ? _state.selectedPlayer
+          : null;
       debugPrint('Fetching volume for player: $player');
-      
+
       final currentVolume = await _service.getVolume(player);
-      
+
       debugPrint('Volume fetched: $currentVolume (previous: ${_state.volume})');
-      
+
       if (currentVolume != null) {
         _updateState(_state.copyWith(volume: currentVolume));
       }
