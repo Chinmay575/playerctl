@@ -1,17 +1,10 @@
 library;
 
-// Export models
 export 'models/media_info.dart';
-
-// Export core
 export 'core/exceptions.dart';
 export 'core/player_state.dart';
-export 'core/media_player_manager.dart'; // State-management-agnostic manager
-
-// Export interfaces
+export 'core/media_player_manager.dart'; 
 export 'interfaces/playerctl_interfaces.dart';
-
-// Export services
 export 'services/playerctl_service.dart';
 export 'services/command_executor.dart';
 export 'services/system_checker.dart';

@@ -1,6 +1,6 @@
 # Playerctl for Flutter (Linux)
 
-A Flutter plugin for Linux that provides media playback control using the `playerctl` command-line tool. Built with Pure Dart (no FFI) and GetX for state management.
+A Flutter plugin for Linux that provides robust media playback control using the `playerctl` command-line tool. Built with SOLID principles, Pure Dart (no FFI), and state-management-agnostic architecture.
 
 ## Features
 
@@ -8,33 +8,45 @@ A Flutter plugin for Linux that provides media playback control using the `playe
 
 - Song title, artist, album
 - Playback status (Playing, Paused, Stopped)
-- Player name detection (Spotify, VLC, etc.)
+- Player name detection (Spotify, VLC, Brave, etc.)
 - Track position and length
+- Shuffle and loop status
 
 ✅ **Playback Controls**
 
 - Play/Pause/Stop
 - Next/Previous track
 - Volume control (0-100)
+- Shuffle toggle
+- Loop cycling (None → Track → Playlist)
 
 ✅ **Multi-Player Support**
 
 - Detect all active MPRIS-compatible players
 - Switch between different media players
-- Target specific players for commands
+- Automatic player switching when current player closes
+- Real-time synchronization across multiple players
 
-✅ **Robust Edge Case Handling**
+✅ **Robust Error Handling**
 
+- Automatic process restart (up to 5 attempts)
+- Handles playerctl crashes gracefully
 - Checks if playerctl is installed
 - Handles no active players gracefully
-- Automatic player detection
-- Error messaging and recovery
+- Special character support in metadata (pipe characters, etc.)
 
-✅ **GetX State Management**
+✅ **State-Agnostic Architecture**
 
-- Reactive state updates
-- Stream-based metadata listening
-- Clean architecture separation
+- Use with any state management solution (GetX, Riverpod, Bloc, Provider, etc.)
+- Clean SOLID architecture
+- Service-oriented design with dependency injection
+- Optional GetX wrapper included
+
+✅ **Advanced Synchronization**
+
+- Triple-layer sync (real-time stream + periodic metadata refresh + volume sync)
+- External volume changes detected automatically
+- Debounced player switching to prevent glitches
 
 ## Requirements
 
@@ -78,28 +90,60 @@ dependencies:
 
 ## Usage
 
-### Basic Setup
+### Option 1: Using the Core Manager (State-Agnostic)
 
-1. Import the package and GetX:
+```dart
+import 'package:playerctl/playerctl.dart';
+
+// Create the manager
+final manager = MediaPlayerManager();
+
+// Listen to state changes
+manager.stateStream.listen((state) {
+  print('Title: ${state.currentMedia.title}');
+  print('Artist: ${state.currentMedia.artist}');
+  print('Status: ${state.playbackStatus}');
+  print('Volume: ${state.volume}');
+  print('Shuffle: ${state.shuffleStatus}');
+  print('Loop: ${state.loopStatus}');
+});
+
+// Initialize
+await manager.initialize();
+
+// Control playback
+await manager.play();
+await manager.pause();
+await manager.next();
+await manager.previous();
+await manager.setVolume(75);
+await manager.toggleShuffle();
+await manager.cycleLoop();
+
+// Switch players
+await manager.switchPlayer('spotify');
+
+// Cleanup
+manager.dispose();
+```
+
+### Option 2: Using GetX Wrapper
 
 ```dart
 import 'package:playerctl/playerctl.dart';
 import 'package:get/get.dart';
-```
 
-2. Initialize the controller:
-
-```dart
+// Initialize the controller
 final MediaController controller = Get.put(MediaController());
-```
 
-3. The controller automatically:
-   - Checks if playerctl is installed
-   - Detects active media players
-   - Starts listening to metadata changes
-   - Handles player disconnections/reconnections
+// The controller automatically:
+// - Checks if playerctl is installed
+// - Detects active media players
+// - Starts listening to metadata changes
+// - Handles player disconnections/reconnections
+// - Syncs volume and metadata periodically
 
-### Accessing Media Information
+### Accessing Media Information (GetX)
 
 ```dart
 Obx(() {
@@ -111,12 +155,14 @@ Obx(() {
       Text('Album: ${media.album}'),
       Text('Status: ${media.status}'),
       Text('Player: ${media.playerName}'),
+      Text('Shuffle: ${controller.shuffleStatus.value}'),
+      Text('Loop: ${controller.loopStatus.value}'),
     ],
   );
 });
 ```
 
-### Playback Controls
+### Playback Controls (GetX)
 
 ```dart
 // Play/Pause toggle
@@ -131,9 +177,13 @@ controller.pause();
 controller.stop();
 controller.next();
 controller.previous();
+
+// Shuffle and loop
+controller.toggleShuffle();
+controller.cycleLoop(); // Cycles through None → Track → Playlist → None
 ```
 
-### Volume Control
+### Volume Control (GetX)
 
 ```dart
 Obx(() => Slider(
@@ -144,7 +194,7 @@ Obx(() => Slider(
 ));
 ```
 
-### Player Selection
+### Player Selection (GetX)
 
 ```dart
 Obx(() {
@@ -191,25 +241,62 @@ Obx(() {
 
 ## Architecture
 
-### Models
+This plugin follows SOLID principles with a clean, layered architecture:
 
-- **MediaInfo**: Data class for media metadata
+### Core Layer (State-Agnostic)
 
-### Services
+- **MediaPlayerManager**: Main coordinator class
+  - State-management-agnostic API
+  - Manages player lifecycle
+  - Handles automatic reconnection
+  - Triple-layer synchronization (stream + metadata refresh + volume sync)
+  - Debounced player switching
+  
+- **PlayerState**: Immutable state container
+  - All player information in one place
+  - Includes shuffle/loop status
+  - Easy to serialize/persist
 
-- **PlayerctlService**: Handles all subprocess interactions with playerctl
-  - Command execution
-  - Metadata streaming
-  - Player detection
+### Service Layer
+
+- **PlayerctlService**: Main facade service
+  - Combines all specialized services
+  - Provides unified API
+
+- **MetadataProvider**: Real-time metadata streaming
+  - Automatic process restart on failure
+  - Special character handling (triple-pipe delimiter)
+  - Up to 5 restart attempts
+
+- **PlayerDetector**: Player discovery and management
+  - Lists available MPRIS players
+  - Monitors player availability
+
+- **PlaybackController**: Playback command execution
+  - Play/pause/stop/next/previous
+  - Shuffle toggle and status
+  - Loop cycling (None/Track/Playlist)
+
+- **VolumeController**: Volume management
+  - Get/set volume (0-100)
+  - Periodic sync to detect external changes
+
+- **CommandExecutor**: Low-level command execution
+  - Process management
   - Error handling
 
-### Controllers
+### State Management Wrappers
 
-- **MediaController**: GetX controller for state management
-  - Observable state
-  - User actions
-  - Automatic updates
-  - Lifecycle management
+- **MediaController**: Optional GetX wrapper
+  - Reactive observables
+  - Automatic lifecycle management
+  - Easy integration with GetX apps
+
+### Models
+
+- **MediaInfo**: Metadata container
+  - Title, artist, album, status, player name
+  - Track position and length
 
 ## Advanced Usage
 
@@ -265,24 +352,35 @@ The example demonstrates:
 
 - Installation checking
 - Player detection and switching
-- All playback controls
-- Volume control
+- All playback controls (play/pause/next/previous)
+- Volume control with external sync
+- Shuffle and loop controls
+- Multi-player management
 - Error handling
 - Real-time metadata updates
+- Automatic player switching
 
 ## Troubleshooting
 
 ### "playerctl is not installed"
+
 Install playerctl using your distribution's package manager (see Requirements section).
 
 ### "No active media players found"
+
 Start a media player that supports MPRIS (like Spotify, VLC, Firefox, Chromium, etc.) and play some media.
 
 ### Commands not working
+
 Some players may not support all MPRIS commands. Check the player's MPRIS implementation.
 
 ### Stream not updating
-Ensure the player is actively playing and supports metadata broadcasting.
+
+The plugin has triple-layer synchronization. If real-time updates stop, periodic refresh (every 3 seconds) will continue to update state.
+
+### Glitching when switching players
+
+The plugin includes debouncing to prevent rapid consecutive switches. If issues persist, check debug output for timer lifecycle messages.
 
 ## Supported Players
 
