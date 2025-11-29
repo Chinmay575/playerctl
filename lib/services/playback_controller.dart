@@ -55,7 +55,7 @@ class PlaybackController implements IPlaybackController {
   Future<bool> toggleShuffle([String? player]) async {
     final current = await getShuffle(player);
     if (current == null) return false;
-    
+
     final newStatus = current.trim().toLowerCase() == 'on' ? 'Off' : 'On';
     return setShuffle(newStatus, player);
   }
@@ -77,7 +77,7 @@ class PlaybackController implements IPlaybackController {
   Future<bool> cycleLoop([String? player]) async {
     final current = await getLoop(player);
     if (current == null) return false;
-    
+
     final currentTrimmed = current.trim();
     String newStatus;
     if (currentTrimmed == 'None') {
@@ -87,8 +87,7 @@ class PlaybackController implements IPlaybackController {
     } else {
       newStatus = 'None';
     }
-    
+
     return setLoop(newStatus, player);
   }
 }
-

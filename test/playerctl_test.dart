@@ -24,7 +24,7 @@ void main() {
     test('MediaInfo copyWith updates only specified fields', () {
       final media = MediaInfo(title: 'Original', artist: 'Original Artist');
       final updated = media.copyWith(title: 'Updated');
-      
+
       expect(updated.title, 'Updated');
       expect(updated.artist, 'Original Artist');
     });
@@ -33,7 +33,7 @@ void main() {
       final media1 = MediaInfo(title: 'Test', artist: 'Artist');
       final media2 = MediaInfo(title: 'Test', artist: 'Artist');
       final media3 = MediaInfo(title: 'Different', artist: 'Artist');
-      
+
       expect(media1, equals(media2));
       expect(media1, isNot(equals(media3)));
     });
@@ -67,7 +67,7 @@ void main() {
 
     // Note: The following tests require playerctl to be installed
     // and may require active media players
-    
+
     test('getPlayerctlVersion returns version or null', () async {
       final version = await service.getPlayerctlVersion();
       expect(version, anyOf(isNull, isA<String>()));

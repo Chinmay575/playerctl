@@ -19,11 +19,11 @@ class VolumeController implements IVolumeController {
     }
 
     final volumeDecimal = volume / 100;
-    
+
     final args = player != null
         ? ['--player=$player', 'volume', volumeDecimal.toString()]
         : ['volume', volumeDecimal.toString()];
-    
+
     return _executor.executeCommandWithArgs(args);
   }
 
@@ -31,12 +31,18 @@ class VolumeController implements IVolumeController {
   Future<int?> getVolume([String? player]) async {
     try {
       final output = await _executor.executeCommandWithOutput('volume', player);
-      debugPrint('Raw volume output from playerctl: "$output" for player: $player');
-      
+      debugPrint(
+        'Raw volume output from playerctl: "$output" for player: $player',
+      );
+
       if (output != null) {
         final volumeDecimal = double.tryParse(output);
-        final volumePercent = volumeDecimal != null ? (volumeDecimal * 100).round() : null;
-        debugPrint('Parsed volume: $volumePercent (from decimal: $volumeDecimal)');
+        final volumePercent = volumeDecimal != null
+            ? (volumeDecimal * 100).round()
+            : null;
+        debugPrint(
+          'Parsed volume: $volumePercent (from decimal: $volumeDecimal)',
+        );
         return volumePercent;
       }
       debugPrint('Volume output was null');

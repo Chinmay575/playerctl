@@ -43,6 +43,44 @@ class PlayerState {
     );
   }
 
+  /// Create PlayerState from JSON
+  factory PlayerState.fromJson(Map<String, dynamic> json) {
+    return PlayerState(
+      currentMedia: MediaInfo.fromJson(
+        json['currentMedia'] as Map<String, dynamic>? ?? {},
+      ),
+      isPlayerctlInstalled: json['isPlayerctlInstalled'] as bool? ?? false,
+      hasActivePlayer: json['hasActivePlayer'] as bool? ?? false,
+      availablePlayers:
+          (json['availablePlayers'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      selectedPlayer: json['selectedPlayer'] as String? ?? '',
+      isLoading: json['isLoading'] as bool? ?? false,
+      errorMessage: json['errorMessage'] as String? ?? '',
+      volume: json['volume'] as int? ?? 50,
+      shuffleStatus: json['shuffleStatus'] as String? ?? 'Unknown',
+      loopStatus: json['loopStatus'] as String? ?? 'Unknown',
+    );
+  }
+
+  /// Convert PlayerState to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'currentMedia': currentMedia.toJson(),
+      'isPlayerctlInstalled': isPlayerctlInstalled,
+      'hasActivePlayer': hasActivePlayer,
+      'availablePlayers': availablePlayers,
+      'selectedPlayer': selectedPlayer,
+      'isLoading': isLoading,
+      'errorMessage': errorMessage,
+      'volume': volume,
+      'shuffleStatus': shuffleStatus,
+      'loopStatus': loopStatus,
+    };
+  }
+
   /// Copy with method for creating updated states
   PlayerState copyWith({
     MediaInfo? currentMedia,

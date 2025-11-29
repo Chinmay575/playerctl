@@ -23,8 +23,17 @@ class MetadataProvider implements IMetadataProvider {
   Future<Map<String, String>> getCurrentMetadata([String? player]) async {
     try {
       final args = player != null
-          ? ['--player=$player', 'metadata', '--format', '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}']
-          : ['metadata', '--format', '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}'];
+          ? [
+              '--player=$player',
+              'metadata',
+              '--format',
+              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}',
+            ]
+          : [
+              'metadata',
+              '--format',
+              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}',
+            ];
 
       final result = await Process.run('playerctl', args, runInShell: true);
 
@@ -73,10 +82,25 @@ class MetadataProvider implements IMetadataProvider {
       _currentPlayer = player;
 
       final args = player != null
-          ? ['--player=$player', 'metadata', '--follow', '--format', '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}']
-          : ['metadata', '--follow', '--format', '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}'];
+          ? [
+              '--player=$player',
+              'metadata',
+              '--follow',
+              '--format',
+              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}',
+            ]
+          : [
+              'metadata',
+              '--follow',
+              '--format',
+              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}',
+            ];
 
-      _metadataProcess = await Process.start('playerctl', args, runInShell: true);
+      _metadataProcess = await Process.start(
+        'playerctl',
+        args,
+        runInShell: true,
+      );
 
       // Listen to stdout
       _metadataProcess!.stdout
@@ -91,7 +115,9 @@ class MetadataProvider implements IMetadataProvider {
                     if (metadata.isNotEmpty) {
                       // Reset restart attempts on successful data reception
                       if (_restartAttempts > 0) {
-                        debugPrint('Process recovered, resetting restart attempts');
+                        debugPrint(
+                          'Process recovered, resetting restart attempts',
+                        );
                         _restartAttempts = 0;
                       }
                       _metadataController?.add(metadata);
@@ -105,34 +131,35 @@ class MetadataProvider implements IMetadataProvider {
             onError: (error) {
               debugPrint('Error in metadata stream: $error');
               _metadataController?.addError(
-                MetadataParsingException('Stream error', error)
+                MetadataParsingException('Stream error', error),
               );
             },
           );
 
       // Listen to stderr for errors
-      _metadataProcess!.stderr
-          .transform(const SystemEncoding().decoder)
-          .listen(
-            (data) {
-              if (data.contains('No players found')) {
-                _metadataController?.addError(
-                    NoPlayerException('No active media players found'));
-              } else {
-                debugPrint('Playerctl stderr: $data');
-              }
-            },
-          );
+      _metadataProcess!.stderr.transform(const SystemEncoding().decoder).listen(
+        (data) {
+          if (data.contains('No players found')) {
+            _metadataController?.addError(
+              NoPlayerException('No active media players found'),
+            );
+          } else {
+            debugPrint('Playerctl stderr: $data');
+          }
+        },
+      );
 
       // Listen to process exit and handle automatic restart
       _metadataProcess!.exitCode.then((exitCode) {
         debugPrint('Playerctl process exited with code: $exitCode');
-        
+
         // If we're still listening and haven't exceeded max restart attempts, restart the process
         if (_isListening && _restartAttempts < _maxRestartAttempts) {
           _restartAttempts++;
-          debugPrint('Attempting to restart playerctl process (attempt $_restartAttempts/$_maxRestartAttempts)');
-          
+          debugPrint(
+            'Attempting to restart playerctl process (attempt $_restartAttempts/$_maxRestartAttempts)',
+          );
+
           // Add a delay before restarting to prevent rapid restarts
           _restartTimer = Timer(_restartDelay, () {
             if (_isListening) {
@@ -141,24 +168,30 @@ class MetadataProvider implements IMetadataProvider {
           });
         } else if (_restartAttempts >= _maxRestartAttempts) {
           // Max restart attempts reached
-          debugPrint('Max restart attempts reached. Stopping metadata listener.');
+          debugPrint(
+            'Max restart attempts reached. Stopping metadata listener.',
+          );
           if (_metadataController != null && !_metadataController!.isClosed) {
             _metadataController!.addError(
-              Exception('Playerctl process failed after $_maxRestartAttempts restart attempts')
+              Exception(
+                'Playerctl process failed after $_maxRestartAttempts restart attempts',
+              ),
             );
           }
           _isListening = false;
-        } else if (exitCode != 0 && _metadataController != null && !_metadataController!.isClosed) {
+        } else if (exitCode != 0 &&
+            _metadataController != null &&
+            !_metadataController!.isClosed) {
           // Process exited with error and we're not listening anymore
           _metadataController!.addError(
-            Exception('Playerctl process exited with code $exitCode')
+            Exception('Playerctl process exited with code $exitCode'),
           );
         }
       });
     } catch (e) {
       debugPrint('Error starting metadata process: $e');
       _metadataController?.addError(
-        MetadataParsingException('Failed to start metadata process', e)
+        MetadataParsingException('Failed to start metadata process', e),
       );
       _isListening = false;
     }
@@ -178,14 +211,18 @@ class MetadataProvider implements IMetadataProvider {
           'position': parts.length > 5 ? parts[5].trim() : '0',
           'length': parts.length > 6 ? parts[6].trim() : '0',
         };
-        
-        debugPrint('📝 Parsed metadata: title="${metadata['title']}", '
-            'artist="${metadata['artist']}", status="${metadata['status']}", '
-            'player="${metadata['playerName']}"');
-        
+
+        debugPrint(
+          '📝 Parsed metadata: title="${metadata['title']}", '
+          'artist="${metadata['artist']}", status="${metadata['status']}", '
+          'player="${metadata['playerName']}"',
+        );
+
         return metadata;
       }
-      debugPrint('⚠️ Insufficient metadata parts: ${parts.length} (expected >= 5)');
+      debugPrint(
+        '⚠️ Insufficient metadata parts: ${parts.length} (expected >= 5)',
+      );
       return {};
     } catch (e) {
       debugPrint('Error parsing metadata: $e');

@@ -36,7 +36,7 @@ class PlayerctlSystemChecker implements IPlayerctlService {
     final isInstalled = await isPlayerctlInstalled();
     if (!isInstalled) {
       throw PlayerctlNotInstalledException(
-        'playerctl is not installed. Please install it using your package manager.'
+        'playerctl is not installed. Please install it using your package manager.',
       );
     }
   }

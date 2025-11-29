@@ -85,7 +85,11 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       state.errorMessage,
@@ -116,7 +120,10 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
                     SizedBox(height: 16),
                     Text(
                       'No active media players found',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     SizedBox(height: 8),
                     Text(
@@ -141,7 +148,10 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
                   if (state.availablePlayers.length > 1) ...[
                     const Text(
                       'Active Players',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Wrap(
@@ -165,14 +175,21 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.music_note, size: 128, color: Colors.grey),
+                    child: const Icon(
+                      Icons.music_note,
+                      size: 128,
+                      color: Colors.grey,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
                   // Song info
                   Text(
                     state.currentMedia.title,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
@@ -191,7 +208,10 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
 
                   // Status
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(state.currentMedia.status),
                       borderRadius: BorderRadius.circular(20),
@@ -256,7 +276,8 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
                           max: 100,
                           divisions: 20,
                           label: '${state.volume}%',
-                          onChanged: (value) => manager.setVolume(value.toInt()),
+                          onChanged: (value) =>
+                              manager.setVolume(value.toInt()),
                         ),
                       ),
                       const Icon(Icons.volume_up),

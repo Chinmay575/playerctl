@@ -5,13 +5,14 @@ import '../interfaces/playerctl_interfaces.dart';
 /// Player detector for finding and listing media players
 /// Follows Single Responsibility Principle
 class PlayerDetector implements IPlayerDetector {
-
   PlayerDetector();
 
   @override
   Future<bool> hasActivePlayer() async {
     try {
-      final result = await Process.run('playerctl', ['status'], runInShell: true);
+      final result = await Process.run('playerctl', [
+        'status',
+      ], runInShell: true);
       return result.exitCode == 0;
     } catch (e) {
       debugPrint('Error checking active player: $e');
@@ -22,7 +23,9 @@ class PlayerDetector implements IPlayerDetector {
   @override
   Future<List<String>> getAvailablePlayers() async {
     try {
-      final result = await Process.run('playerctl', ['--list-all'], runInShell: true);
+      final result = await Process.run('playerctl', [
+        '--list-all',
+      ], runInShell: true);
       if (result.exitCode == 0) {
         final output = result.stdout.toString().trim();
         if (output.isEmpty) return [];

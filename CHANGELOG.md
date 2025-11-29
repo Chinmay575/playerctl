@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.2
+
+* Added JSON serialization support (`toJson` and `fromJson`) to `PlayerState` and `MediaInfo`
+* Added platform specification to pubspec.yaml (Linux only)
+* Code formatting improvements and cleanup
+* Enhanced type safety in JSON parsing with null checks
+
 ## 1.0.1
 
 * Updated package description for better clarity

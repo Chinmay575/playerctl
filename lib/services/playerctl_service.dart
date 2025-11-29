@@ -8,16 +8,16 @@ import 'volume_controller.dart';
 
 /// Facade service that provides a unified interface to all playerctl operations
 /// Follows Facade Pattern and Dependency Inversion Principle
-/// 
+///
 /// This class delegates to specialized services, each with a single responsibility
-class PlayerctlService implements 
-    IPlayerctlService, 
-    IPlayerDetector, 
-    IMetadataProvider, 
-    IPlaybackController, 
-    IVolumeController,
-    ICommandExecutor {
-  
+class PlayerctlService
+    implements
+        IPlayerctlService,
+        IPlayerDetector,
+        IMetadataProvider,
+        IPlaybackController,
+        IVolumeController,
+        ICommandExecutor {
   late final PlayerctlCommandExecutor _commandExecutor;
   late final PlayerctlSystemChecker _systemChecker;
   late final PlayerDetector _playerDetector;
@@ -44,12 +44,12 @@ class PlayerctlService implements
     required MetadataProvider metadataProvider,
     required PlaybackController playbackController,
     required VolumeController volumeController,
-  })  : _commandExecutor = commandExecutor,
-        _systemChecker = systemChecker,
-        _playerDetector = playerDetector,
-        _metadataProvider = metadataProvider,
-        _playbackController = playbackController,
-        _volumeController = volumeController;
+  }) : _commandExecutor = commandExecutor,
+       _systemChecker = systemChecker,
+       _playerDetector = playerDetector,
+       _metadataProvider = metadataProvider,
+       _playbackController = playbackController,
+       _volumeController = volumeController;
 
   // IPlayerctlService implementation
   @override
@@ -58,27 +58,30 @@ class PlayerctlService implements
   @override
   Future<String?> getPlayerctlVersion() => _systemChecker.getPlayerctlVersion();
 
-  Future<void> ensurePlayerctlInstalled() => _systemChecker.ensurePlayerctlInstalled();
+  Future<void> ensurePlayerctlInstalled() =>
+      _systemChecker.ensurePlayerctlInstalled();
 
   // IPlayerDetector implementation
   @override
   Future<bool> hasActivePlayer() => _playerDetector.hasActivePlayer();
 
   @override
-  Future<List<String>> getAvailablePlayers() => _playerDetector.getAvailablePlayers();
+  Future<List<String>> getAvailablePlayers() =>
+      _playerDetector.getAvailablePlayers();
 
-  Future<String?> getActivePlayerName() => _playerDetector.getActivePlayerName();
+  Future<String?> getActivePlayerName() =>
+      _playerDetector.getActivePlayerName();
 
-  Future<bool> isPlayerAvailable(String playerName) => 
+  Future<bool> isPlayerAvailable(String playerName) =>
       _playerDetector.isPlayerAvailable(playerName);
 
   // IMetadataProvider implementation
   @override
-  Future<Map<String, String>> getCurrentMetadata([String? player]) => 
+  Future<Map<String, String>> getCurrentMetadata([String? player]) =>
       _metadataProvider.getCurrentMetadata(player);
 
   @override
-  Stream<Map<String, String>> listenToMetadata([String? player]) => 
+  Stream<Map<String, String>> listenToMetadata([String? player]) =>
       _metadataProvider.listenToMetadata(player);
 
   @override
@@ -95,48 +98,55 @@ class PlayerctlService implements
   Future<bool> stop([String? player]) => _playbackController.stop(player);
 
   @override
-  Future<bool> playPause([String? player]) => _playbackController.playPause(player);
+  Future<bool> playPause([String? player]) =>
+      _playbackController.playPause(player);
 
   @override
   Future<bool> next([String? player]) => _playbackController.next(player);
 
   @override
-  Future<bool> previous([String? player]) => _playbackController.previous(player);
+  Future<bool> previous([String? player]) =>
+      _playbackController.previous(player);
 
   // Shuffle and Loop control
-  Future<String?> getShuffle([String? player]) => _playbackController.getShuffle(player);
-  
-  Future<bool> setShuffle(String status, [String? player]) => 
+  Future<String?> getShuffle([String? player]) =>
+      _playbackController.getShuffle(player);
+
+  Future<bool> setShuffle(String status, [String? player]) =>
       _playbackController.setShuffle(status, player);
-  
-  Future<bool> toggleShuffle([String? player]) => _playbackController.toggleShuffle(player);
-  
-  Future<String?> getLoop([String? player]) => _playbackController.getLoop(player);
-  
-  Future<bool> setLoop(String status, [String? player]) => 
+
+  Future<bool> toggleShuffle([String? player]) =>
+      _playbackController.toggleShuffle(player);
+
+  Future<String?> getLoop([String? player]) =>
+      _playbackController.getLoop(player);
+
+  Future<bool> setLoop(String status, [String? player]) =>
       _playbackController.setLoop(status, player);
-  
-  Future<bool> cycleLoop([String? player]) => _playbackController.cycleLoop(player);
+
+  Future<bool> cycleLoop([String? player]) =>
+      _playbackController.cycleLoop(player);
 
   // IVolumeController implementation
   @override
-  Future<bool> setVolume(int volume, [String? player]) => 
+  Future<bool> setVolume(int volume, [String? player]) =>
       _volumeController.setVolume(volume, player);
 
   @override
-  Future<int?> getVolume([String? player]) => _volumeController.getVolume(player);
+  Future<int?> getVolume([String? player]) =>
+      _volumeController.getVolume(player);
 
-  Future<bool> increaseVolume(int percentage, [String? player]) => 
+  Future<bool> increaseVolume(int percentage, [String? player]) =>
       _volumeController.increaseVolume(percentage, player);
 
-  Future<bool> decreaseVolume(int percentage, [String? player]) => 
+  Future<bool> decreaseVolume(int percentage, [String? player]) =>
       _volumeController.decreaseVolume(percentage, player);
 
   Future<bool> mute([String? player]) => _volumeController.mute(player);
 
   // ICommandExecutor implementation
   @override
-  Future<bool> executeCommand(String command, [String? player]) => 
+  Future<bool> executeCommand(String command, [String? player]) =>
       _commandExecutor.executeCommand(command, player);
 
   /// Cleanup all resources

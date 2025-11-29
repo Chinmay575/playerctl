@@ -19,11 +19,14 @@ class PlayerctlCommandExecutor implements ICommandExecutor {
   }
 
   /// Execute a command and get the output
-  Future<String?> executeCommandWithOutput(String command, [String? player]) async {
+  Future<String?> executeCommandWithOutput(
+    String command, [
+    String? player,
+  ]) async {
     try {
       final args = player != null ? ['--player=$player', command] : [command];
       final result = await Process.run('playerctl', args, runInShell: true);
-      
+
       if (result.exitCode == 0) {
         return result.stdout.toString().trim();
       }

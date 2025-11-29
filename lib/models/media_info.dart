@@ -44,6 +44,32 @@ class MediaInfo {
     );
   }
 
+  /// Create MediaInfo from JSON
+  factory MediaInfo.fromJson(Map<String, dynamic> json) {
+    return MediaInfo(
+      title: json['title'] as String? ?? 'Unknown',
+      artist: json['artist'] as String? ?? 'Unknown',
+      album: json['album'] as String? ?? 'Unknown',
+      status: json['status'] as String? ?? 'Stopped',
+      playerName: json['playerName'] as String? ?? 'Unknown',
+      position: json['position'] as int?,
+      length: json['length'] as int?,
+    );
+  }
+
+  /// Convert MediaInfo to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'artist': artist,
+      'album': album,
+      'status': status,
+      'playerName': playerName,
+      'position': position,
+      'length': length,
+    };
+  }
+
   @override
   String toString() {
     return 'MediaInfo(title: $title, artist: $artist, status: $status, player: $playerName)';
