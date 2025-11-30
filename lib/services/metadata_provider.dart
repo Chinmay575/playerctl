@@ -19,6 +19,9 @@ class MetadataProvider implements IMetadataProvider {
   // Use a delimiter unlikely to appear in song titles/metadata
   static const String _delimiter = '|||';
 
+  // Track last sent metadata to avoid duplicate emissions
+  Map<String, String>? _lastMetadata;
+
   @override
   Future<Map<String, String>> getCurrentMetadata([String? player]) async {
     try {
@@ -73,6 +76,7 @@ class MetadataProvider implements IMetadataProvider {
     _metadataController = null;
     _currentPlayer = null;
     _restartAttempts = 0;
+    _lastMetadata = null;
   }
 
   /// Start the metadata streaming process
@@ -112,14 +116,15 @@ class MetadataProvider implements IMetadataProvider {
                 if (line.isNotEmpty) {
                   try {
                     final metadata = _parseMetadata(line);
-                    if (metadata.isNotEmpty) {
+                    if (metadata.isNotEmpty && _hasMetadataChanged(metadata)) {
                       // Reset restart attempts on successful data reception
                       if (_restartAttempts > 0) {
                         debugPrint(
-                          'Process recovered, resetting restart attempts',
+                          'Metadata changed, resetting restart attempts',
                         );
                         _restartAttempts = 0;
                       }
+                      _lastMetadata = Map<String, String>.from(metadata);
                       _metadataController?.add(metadata);
                     }
                   } catch (e) {
@@ -195,6 +200,19 @@ class MetadataProvider implements IMetadataProvider {
       );
       _isListening = false;
     }
+  }
+
+  /// Check if metadata has changed compared to last emission
+  bool _hasMetadataChanged(Map<String, String> newMetadata) {
+    if (_lastMetadata == null) return true;
+
+    // Compare significant fields (ignore position as it changes constantly)
+    return _lastMetadata!['title'] != newMetadata['title'] ||
+        _lastMetadata!['artist'] != newMetadata['artist'] ||
+        _lastMetadata!['album'] != newMetadata['album'] ||
+        _lastMetadata!['status'] != newMetadata['status'] ||
+        _lastMetadata!['playerName'] != newMetadata['playerName'] ||
+        _lastMetadata!['length'] != newMetadata['length'];
   }
 
   /// Parse metadata output from playerctl

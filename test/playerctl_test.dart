@@ -121,11 +121,15 @@ void main() {
       expect(result, isA<bool>());
     });
 
-    test('setVolume with invalid range returns false', () async {
-      final result1 = await service.setVolume(-10);
-      final result2 = await service.setVolume(150);
-      expect(result1, false);
-      expect(result2, false);
+    test('setVolume with invalid range throws exception', () async {
+      expect(
+        () async => await service.setVolume(-10),
+        throwsA(isA<InvalidVolumeException>()),
+      );
+      expect(
+        () async => await service.setVolume(150),
+        throwsA(isA<InvalidVolumeException>()),
+      );
     });
 
     test('getVolume returns int or null', () async {

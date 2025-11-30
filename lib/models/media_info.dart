@@ -1,5 +1,7 @@
+import 'package:equatable/equatable.dart';
+
 /// Represents the current media playback information
-class MediaInfo {
+class MediaInfo extends Equatable {
   final String title;
   final String artist;
   final String album;
@@ -8,7 +10,7 @@ class MediaInfo {
   final int? position; // Position in microseconds
   final int? length; // Length in microseconds
 
-  MediaInfo({
+  const MediaInfo({
     this.title = 'Unknown',
     this.artist = 'Unknown',
     this.album = 'Unknown',
@@ -20,8 +22,19 @@ class MediaInfo {
 
   /// Creates an empty MediaInfo (no active player)
   factory MediaInfo.empty() {
-    return MediaInfo();
+    return const MediaInfo();
   }
+
+  @override
+  List<Object?> get props => [
+    title,
+    artist,
+    album,
+    status,
+    playerName,
+    position,
+    length,
+  ];
 
   /// Copy with method for updating specific fields
   MediaInfo copyWith({
@@ -73,30 +86,5 @@ class MediaInfo {
   @override
   String toString() {
     return 'MediaInfo(title: $title, artist: $artist, status: $status, player: $playerName)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    return other is MediaInfo &&
-        other.title == title &&
-        other.artist == artist &&
-        other.album == album &&
-        other.status == status &&
-        other.playerName == playerName &&
-        other.position == position &&
-        other.length == length;
-  }
-
-  @override
-  int get hashCode {
-    return title.hashCode ^
-        artist.hashCode ^
-        album.hashCode ^
-        status.hashCode ^
-        playerName.hashCode ^
-        (position?.hashCode ?? 0) ^
-        (length?.hashCode ?? 0);
   }
 }

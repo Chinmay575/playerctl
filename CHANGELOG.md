@@ -2,10 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.3
+
+* **Breaking Change**: Implemented Equatable for all models (`PlayerState` and `MediaInfo`)
+  * Removed manual `==` operator and `hashCode` implementations
+  * More efficient and reliable equality comparisons
+  * Better performance for state management solutions
+  * Added `equatable` package as dependency
+* Added stream optimization: metadata changes only emit when actual changes occur (ignores position updates)
+  * Significantly reduces unnecessary UI updates
+  * Ignores position changes that happen constantly during playback
+  * Only emits when title, artist, album, status, player, or length changes
+* Fixed test for invalid volume range to expect exception instead of false
+* All tests passing (19 tests)
+
 ## 1.0.2
 
+* **Breaking Change**: Implemented Equatable for all models (`PlayerState` and `MediaInfo`)
+  * Removed manual `==` operator and `hashCode` implementations
+  * More efficient and reliable equality comparisons
+  * Better performance for state management solutions
+* Added stream optimization: metadata changes only emit when actual changes occur (ignores position updates)
 * Added JSON serialization support (`toJson` and `fromJson`) to `PlayerState` and `MediaInfo`
 * Added platform specification to pubspec.yaml (Linux only)
+* Fixed test for invalid volume range to expect exception instead of false
 * Code formatting improvements and cleanup
 * Enhanced type safety in JSON parsing with null checks
 

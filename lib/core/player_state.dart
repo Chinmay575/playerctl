@@ -1,8 +1,9 @@
+import 'package:equatable/equatable.dart';
 import '../models/media_info.dart';
 
 /// Immutable state class representing the complete player state
 /// Can be used with any state management solution or none at all
-class PlayerState {
+class PlayerState extends Equatable {
   final MediaInfo currentMedia;
   final bool isPlayerctlInstalled;
   final bool hasActivePlayer;
@@ -26,6 +27,20 @@ class PlayerState {
     required this.shuffleStatus,
     required this.loopStatus,
   });
+
+  @override
+  List<Object?> get props => [
+    currentMedia,
+    isPlayerctlInstalled,
+    hasActivePlayer,
+    availablePlayers,
+    selectedPlayer,
+    isLoading,
+    errorMessage,
+    volume,
+    shuffleStatus,
+    loopStatus,
+  ];
 
   /// Initial state
   factory PlayerState.initial() {
@@ -106,37 +121,6 @@ class PlayerState {
       shuffleStatus: shuffleStatus ?? this.shuffleStatus,
       loopStatus: loopStatus ?? this.loopStatus,
     );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    return other is PlayerState &&
-        other.currentMedia == currentMedia &&
-        other.isPlayerctlInstalled == isPlayerctlInstalled &&
-        other.hasActivePlayer == hasActivePlayer &&
-        other.availablePlayers.length == availablePlayers.length &&
-        other.selectedPlayer == selectedPlayer &&
-        other.isLoading == isLoading &&
-        other.errorMessage == errorMessage &&
-        other.volume == volume &&
-        other.shuffleStatus == shuffleStatus &&
-        other.loopStatus == loopStatus;
-  }
-
-  @override
-  int get hashCode {
-    return currentMedia.hashCode ^
-        isPlayerctlInstalled.hashCode ^
-        hasActivePlayer.hashCode ^
-        availablePlayers.hashCode ^
-        selectedPlayer.hashCode ^
-        isLoading.hashCode ^
-        errorMessage.hashCode ^
-        volume.hashCode ^
-        shuffleStatus.hashCode ^
-        loopStatus.hashCode;
   }
 
   @override
