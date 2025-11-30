@@ -5,6 +5,7 @@ import '../models/media_info.dart';
 /// Can be used with any state management solution or none at all
 class PlayerState extends Equatable {
   final MediaInfo currentMedia;
+  final Map<String, MediaInfo> allPlayersMedia; // All players' media info
   final bool isPlayerctlInstalled;
   final bool hasActivePlayer;
   final List<String> availablePlayers;
@@ -17,6 +18,7 @@ class PlayerState extends Equatable {
 
   const PlayerState({
     required this.currentMedia,
+    this.allPlayersMedia = const {},
     required this.isPlayerctlInstalled,
     required this.hasActivePlayer,
     required this.availablePlayers,
@@ -31,6 +33,7 @@ class PlayerState extends Equatable {
   @override
   List<Object?> get props => [
     currentMedia,
+    allPlayersMedia,
     isPlayerctlInstalled,
     hasActivePlayer,
     availablePlayers,
@@ -60,10 +63,19 @@ class PlayerState extends Equatable {
 
   /// Create PlayerState from JSON
   factory PlayerState.fromJson(Map<String, dynamic> json) {
+    // Parse allPlayersMedia map
+    final allPlayersMediaJson =
+        json['allPlayersMedia'] as Map<String, dynamic>? ?? {};
+    final allPlayersMedia = <String, MediaInfo>{};
+    allPlayersMediaJson.forEach((key, value) {
+      allPlayersMedia[key] = MediaInfo.fromJson(value as Map<String, dynamic>);
+    });
+
     return PlayerState(
       currentMedia: MediaInfo.fromJson(
         json['currentMedia'] as Map<String, dynamic>? ?? {},
       ),
+      allPlayersMedia: allPlayersMedia,
       isPlayerctlInstalled: json['isPlayerctlInstalled'] as bool? ?? false,
       hasActivePlayer: json['hasActivePlayer'] as bool? ?? false,
       availablePlayers:
@@ -82,8 +94,15 @@ class PlayerState extends Equatable {
 
   /// Convert PlayerState to JSON
   Map<String, dynamic> toJson() {
+    // Convert allPlayersMedia map to JSON
+    final allPlayersMediaJson = <String, dynamic>{};
+    allPlayersMedia.forEach((key, value) {
+      allPlayersMediaJson[key] = value.toJson();
+    });
+
     return {
       'currentMedia': currentMedia.toJson(),
+      'allPlayersMedia': allPlayersMediaJson,
       'isPlayerctlInstalled': isPlayerctlInstalled,
       'hasActivePlayer': hasActivePlayer,
       'availablePlayers': availablePlayers,
@@ -99,6 +118,7 @@ class PlayerState extends Equatable {
   /// Copy with method for creating updated states
   PlayerState copyWith({
     MediaInfo? currentMedia,
+    Map<String, MediaInfo>? allPlayersMedia,
     bool? isPlayerctlInstalled,
     bool? hasActivePlayer,
     List<String>? availablePlayers,
@@ -111,6 +131,7 @@ class PlayerState extends Equatable {
   }) {
     return PlayerState(
       currentMedia: currentMedia ?? this.currentMedia,
+      allPlayersMedia: allPlayersMedia ?? this.allPlayersMedia,
       isPlayerctlInstalled: isPlayerctlInstalled ?? this.isPlayerctlInstalled,
       hasActivePlayer: hasActivePlayer ?? this.hasActivePlayer,
       availablePlayers: availablePlayers ?? this.availablePlayers,

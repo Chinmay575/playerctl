@@ -12,3 +12,4 @@ export 'services/player_detector.dart';
 export 'services/metadata_provider.dart';
 export 'services/playback_controller.dart';
 export 'services/volume_controller.dart';
+export 'services/album_art_server.dart';

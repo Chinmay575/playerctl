@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:playerctl/playerctl.dart';
 
-/// Example of using playerctl WITHOUT any state management
-/// This uses vanilla Flutter with StatefulWidget and StreamBuilder
 void main() {
   runApp(const MyApp());
 }
@@ -13,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Playerctl - No State Management',
+      title: 'Playerctl',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -168,20 +166,102 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
                     const SizedBox(height: 24),
                   ],
 
-                  // Album art placeholder
+                  // Album art with network support
                   Container(
                     height: 300,
                     decoration: BoxDecoration(
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.music_note,
-                      size: 128,
-                      color: Colors.grey,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: (state.currentMedia.artUrl?.isNotEmpty ?? false)
+                          ? Image.network(
+                              // Replace 0.0.0.0 with your machine's IP for cross-device access
+                              // Example: state.currentMedia.artUrl!.replaceAll('0.0.0.0', '192.168.1.100')
+                              state.currentMedia.artUrl!,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, progress) {
+                                if (progress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: progress.expectedTotalBytes != null
+                                        ? progress.cumulativeBytesLoaded /
+                                              progress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.music_note,
+                                  size: 128,
+                                  color: Colors.grey,
+                                );
+                              },
+                            )
+                          : const Icon(
+                              Icons.music_note,
+                              size: 128,
+                              color: Colors.grey,
+                            ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
+                  // Album art URL info
+                  if (state.currentMedia.artUrl?.isNotEmpty ?? false)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                state.currentMedia.artUrl!.startsWith(
+                                      'http://0.0.0.0',
+                                    )
+                                    ? Icons.computer
+                                    : Icons.cloud,
+                                size: 16,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  state.currentMedia.artUrl!.startsWith(
+                                        'http://0.0.0.0',
+                                      )
+                                      ? 'Local server (replace 0.0.0.0 with IP for network access)'
+                                      : 'Online URL',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue[800],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            state.currentMedia.artUrl!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.blue[600],
+                              fontFamily: 'monospace',
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 16),
 
                   // Song info
                   Text(
@@ -232,8 +312,16 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
                         onPressed: () => manager.previous(),
                         icon: const Icon(Icons.skip_previous),
                         iconSize: 48,
+                        tooltip: 'Previous',
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => manager.seekBackward(10),
+                        icon: const Icon(Icons.replay_10),
+                        iconSize: 36,
+                        tooltip: 'Rewind 10s',
+                      ),
+                      const SizedBox(width: 8),
                       Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary,
@@ -248,17 +336,58 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
                           ),
                           color: Colors.white,
                           iconSize: 48,
+                          tooltip: 'Play/Pause',
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => manager.seekForward(10),
+                        icon: const Icon(Icons.forward_10),
+                        iconSize: 36,
+                        tooltip: 'Forward 10s',
+                      ),
+                      const SizedBox(width: 8),
                       IconButton(
                         onPressed: () => manager.next(),
                         icon: const Icon(Icons.skip_next),
                         iconSize: 48,
+                        tooltip: 'Next',
                       ),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+
+                  // Position indicator
+                  if ((state.currentMedia.position ?? 0) > 0 &&
+                      (state.currentMedia.length ?? 0) > 0)
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatDuration(state.currentMedia.position ?? 0),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            Text(
+                              _formatDuration(state.currentMedia.length ?? 0),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: (state.currentMedia.length ?? 0) > 0
+                              ? (state.currentMedia.position ?? 0) /
+                                    state.currentMedia.length!
+                              : 0,
+                          minHeight: 6,
+                          backgroundColor: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
 
                   // Volume control
                   const Text(
@@ -321,5 +450,12 @@ class _MediaPlayerPageState extends State<MediaPlayerPage> {
       default:
         return Colors.grey;
     }
+  }
+
+  String _formatDuration(int microseconds) {
+    final duration = Duration(microseconds: microseconds);
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds.remainder(60);
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 }

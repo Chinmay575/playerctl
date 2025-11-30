@@ -342,7 +342,55 @@ class MediaPlayerManager {
           : null,
     );
 
-    _updateState(_state.copyWith(currentMedia: media, errorMessage: ''));
+    // Only update currentMedia if this metadata is from the selected player
+    // This prevents other players' metadata from overwriting the current display
+    final isSelectedPlayer =
+        _state.selectedPlayer.isEmpty ||
+        media.playerName == _state.selectedPlayer ||
+        // Also match base player name (e.g., "brave" matches "brave.instance123")
+        media.playerName.startsWith('${_state.selectedPlayer}.');
+
+    if (isSelectedPlayer) {
+      _updateState(_state.copyWith(currentMedia: media, errorMessage: ''));
+    } else {
+      debugPrint(
+        '⚠️ Ignoring metadata from ${media.playerName} (selected: ${_state.selectedPlayer})',
+      );
+    }
+  }
+
+  /// Pause all other players except the specified one
+  Future<void> _pauseOtherPlayers([String? exceptPlayer]) async {
+    try {
+      final currentPlayer =
+          exceptPlayer ??
+          (_state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null);
+
+      if (currentPlayer == null) return;
+
+      // Get all available players
+      final allPlayers = _state.availablePlayers;
+
+      for (final player in allPlayers) {
+        // Skip the current player
+        if (player == currentPlayer) continue;
+
+        // Check if this player is playing
+        try {
+          final metadata = await _service.getCurrentMetadata(player);
+          final status = metadata['status'] ?? '';
+
+          if (status.toLowerCase() == 'playing') {
+            debugPrint('⏸️ Auto-pausing other player: $player');
+            await _service.pause(player);
+          }
+        } catch (e) {
+          debugPrint('Error checking/pausing player $player: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error in _pauseOtherPlayers: $e');
+    }
   }
 
   /// Switch to a different player
@@ -354,16 +402,42 @@ class MediaPlayerManager {
       return;
     }
 
-    _updateState(_state.copyWith(selectedPlayer: playerName, isLoading: true));
+    // Clear current media and set loading state immediately
+    _updateState(
+      _state.copyWith(
+        selectedPlayer: playerName,
+        isLoading: true,
+        currentMedia: MediaInfo.empty(), // Clear stale data immediately
+      ),
+    );
 
-    // Stop current listener
+    // Stop current listener and all timers
     stopListening();
+    _stopVolumeSync();
+    _stopMetadataRefresh();
+
+    // Small delay to ensure clean state
+    await Future.delayed(const Duration(milliseconds: 50));
 
     // Fetch current metadata immediately for the new player
     try {
       final metadata = await _service.getCurrentMetadata(playerName);
       if (metadata.isNotEmpty) {
-        _updateMediaInfo(metadata);
+        // Force update media directly, bypassing the player check
+        final media = MediaInfo(
+          title: metadata['title'] ?? 'Unknown',
+          artist: metadata['artist'] ?? 'Unknown',
+          album: metadata['album'] ?? 'Unknown',
+          status: metadata['status'] ?? 'Stopped',
+          playerName: metadata['playerName'] ?? 'Unknown',
+          position: int.tryParse(metadata['position'] ?? '0'),
+          length: int.tryParse(metadata['length'] ?? '0'),
+          artUrl: metadata['artUrl']?.isNotEmpty == true
+              ? metadata['artUrl']
+              : null,
+        );
+        _updateState(_state.copyWith(currentMedia: media, errorMessage: ''));
+        debugPrint('✅ Fetched initial metadata for $playerName');
       }
     } catch (e) {
       debugPrint('Error fetching metadata for player $playerName: $e');
@@ -384,11 +458,22 @@ class MediaPlayerManager {
     _updateState(_state.copyWith(isLoading: false));
   }
 
-  /// Play/Pause toggle
+  /// Play/Pause toggle - pauses other players when starting playback
   Future<bool> playPause() async {
-    final success = await _service.playPause(
-      _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null,
-    );
+    final currentPlayer = _state.selectedPlayer.isNotEmpty
+        ? _state.selectedPlayer
+        : null;
+
+    // Check current status to determine if we're about to play
+    final currentStatus = _state.currentMedia.status;
+    final willPlay = currentStatus != 'Playing';
+
+    // If we're about to play, pause other players first
+    if (willPlay) {
+      await _pauseOtherPlayers(currentPlayer);
+    }
+
+    final success = await _service.playPause(currentPlayer);
     if (!success) {
       _updateState(
         _state.copyWith(errorMessage: 'Failed to toggle play/pause'),
@@ -397,11 +482,16 @@ class MediaPlayerManager {
     return success;
   }
 
-  /// Play
+  /// Play - pauses other players when starting playback
   Future<bool> play() async {
-    final success = await _service.play(
-      _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null,
-    );
+    final currentPlayer = _state.selectedPlayer.isNotEmpty
+        ? _state.selectedPlayer
+        : null;
+
+    // Pause other players before playing
+    await _pauseOtherPlayers(currentPlayer);
+
+    final success = await _service.play(currentPlayer);
     if (!success) {
       _updateState(_state.copyWith(errorMessage: 'Failed to play'));
     }
@@ -430,11 +520,16 @@ class MediaPlayerManager {
     return success;
   }
 
-  /// Next track
+  /// Next track - pauses other players when skipping
   Future<bool> next() async {
-    final success = await _service.next(
-      _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null,
-    );
+    final currentPlayer = _state.selectedPlayer.isNotEmpty
+        ? _state.selectedPlayer
+        : null;
+
+    // Pause other players before going to next track
+    await _pauseOtherPlayers(currentPlayer);
+
+    final success = await _service.next(currentPlayer);
     if (!success) {
       _updateState(
         _state.copyWith(errorMessage: 'Failed to skip to next track'),
@@ -443,17 +538,91 @@ class MediaPlayerManager {
     return success;
   }
 
-  /// Previous track
+  /// Previous track - pauses other players when skipping
   Future<bool> previous() async {
-    final success = await _service.previous(
-      _state.selectedPlayer.isNotEmpty ? _state.selectedPlayer : null,
-    );
+    final currentPlayer = _state.selectedPlayer.isNotEmpty
+        ? _state.selectedPlayer
+        : null;
+
+    // Pause other players before going to previous track
+    await _pauseOtherPlayers(currentPlayer);
+
+    final success = await _service.previous(currentPlayer);
     if (!success) {
       _updateState(
         _state.copyWith(errorMessage: 'Failed to skip to previous track'),
       );
     }
     return success;
+  }
+
+  /// Get current playback position in microseconds
+  Future<int?> getPosition() async {
+    try {
+      final player = _state.selectedPlayer.isNotEmpty
+          ? _state.selectedPlayer
+          : null;
+      return await _service.getPosition(player);
+    } catch (e) {
+      debugPrint('Error getting position: $e');
+      return null;
+    }
+  }
+
+  /// Seek to absolute position in microseconds
+  Future<bool> seekTo(int positionMicroseconds) async {
+    try {
+      final player = _state.selectedPlayer.isNotEmpty
+          ? _state.selectedPlayer
+          : null;
+      return await _service.seekTo(positionMicroseconds, player);
+    } catch (e) {
+      debugPrint('Error seeking to position: $e');
+      _updateState(_state.copyWith(errorMessage: 'Failed to seek'));
+      return false;
+    }
+  }
+
+  /// Seek relative to current position (positive = forward, negative = backward)
+  Future<bool> seek(int offsetMicroseconds) async {
+    try {
+      final player = _state.selectedPlayer.isNotEmpty
+          ? _state.selectedPlayer
+          : null;
+      return await _service.seek(offsetMicroseconds, player);
+    } catch (e) {
+      debugPrint('Error seeking: $e');
+      _updateState(_state.copyWith(errorMessage: 'Failed to seek'));
+      return false;
+    }
+  }
+
+  /// Skip forward by specified number of seconds
+  Future<bool> seekForward(int seconds) async {
+    try {
+      final player = _state.selectedPlayer.isNotEmpty
+          ? _state.selectedPlayer
+          : null;
+      return await _service.seekForward(seconds, player);
+    } catch (e) {
+      debugPrint('Error seeking forward: $e');
+      _updateState(_state.copyWith(errorMessage: 'Failed to seek forward'));
+      return false;
+    }
+  }
+
+  /// Skip backward by specified number of seconds
+  Future<bool> seekBackward(int seconds) async {
+    try {
+      final player = _state.selectedPlayer.isNotEmpty
+          ? _state.selectedPlayer
+          : null;
+      return await _service.seekBackward(seconds, player);
+    } catch (e) {
+      debugPrint('Error seeking backward: $e');
+      _updateState(_state.copyWith(errorMessage: 'Failed to seek backward'));
+      return false;
+    }
   }
 
   /// Toggle shuffle

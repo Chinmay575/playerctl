@@ -7,6 +7,7 @@ A Flutter plugin for Linux that provides robust media playback control using the
 ✅ **Real-time Media Information**
 
 - Song title, artist, album
+- Album artwork with local HTTP server (cross-device access)
 - Playback status (Playing, Paused, Stopped)
 - Player name detection (Spotify, VLC, Brave, etc.)
 - Track position and length
@@ -19,6 +20,8 @@ A Flutter plugin for Linux that provides robust media playback control using the
 - Volume control (0-100)
 - Shuffle toggle
 - Loop cycling (None → Track → Playlist)
+- Seek/scrub functionality (position control in microseconds)
+- Forward/backward skip by seconds
 
 ✅ **Multi-Player Support**
 
@@ -193,6 +196,81 @@ Obx(() => Slider(
   onChanged: (value) => controller.setVolume(value.toInt()),
 ));
 ```
+
+### Seek/Position Control
+
+```dart
+// Get current position in microseconds
+final position = await manager.getPosition(); // Returns int? (microseconds)
+
+// Seek to absolute position (30 seconds = 30,000,000 microseconds)
+await manager.seekTo(30000000);
+
+// Seek relative to current position (forward 10 seconds)
+await manager.seek(10000000);
+
+// Seek backward (negative offset)
+await manager.seek(-10000000);
+
+// Convenience methods for seconds-based seeking
+await manager.seekForward(10); // Skip forward 10 seconds
+await manager.seekBackward(5);  // Skip backward 5 seconds
+
+// All seek methods support optional player parameter
+await manager.seekForward(10, 'spotify');
+```
+
+**Note**: Position values are in microseconds (MPRIS standard). To convert:
+
+- Seconds → Microseconds: `seconds * 1,000,000`
+- Microseconds → Seconds: `microseconds / 1,000,000`
+
+### Album Art Server
+
+The plugin automatically starts a local HTTP server (on port `8765`) to serve album artwork from local files. This allows you to access album art from other devices on your network.
+
+**Features:**
+
+- Automatically converts `file://` URLs to local HTTP URLs
+- Online URLs (https://) from services like Spotify remain unchanged
+- Server runs on `0.0.0.0:8765` for network accessibility
+- CORS enabled for cross-origin requests
+
+**Cross-Device Access:**
+
+Album art URLs use `0.0.0.0` which you can replace with your machine's IP address:
+
+```dart
+// Original URL from plugin
+final artUrl = 'http://0.0.0.0:8765/art/abc123.jpg';
+
+// Replace with your machine's IP for access from other devices
+final networkUrl = artUrl.replaceAll('0.0.0.0', '192.168.1.100');
+// Now accessible as: http://192.168.1.100:8765/art/abc123.jpg
+```
+
+**Example Usage:**
+
+```dart
+// Get album art URL from metadata
+final artUrl = state.currentMedia.artUrl;
+
+// Display in Image widget
+if (artUrl.isNotEmpty) {
+  Image.network(
+    artUrl.replaceAll('0.0.0.0', 'YOUR_MACHINE_IP'),
+    errorBuilder: (context, error, stackTrace) {
+      return Icon(Icons.album); // Fallback icon
+    },
+  );
+}
+```
+
+**Server Management:**
+
+- Server starts automatically when metadata is first fetched
+- Server stops automatically when the manager is disposed
+- Health check available at `http://0.0.0.0:8765/`
 
 ### Player Selection (GetX)
 

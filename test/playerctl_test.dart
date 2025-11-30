@@ -151,4 +151,78 @@ void main() {
       expect(exception.toString(), contains('NoPlayerException'));
     });
   });
+
+  group('Multi-Player Data Tests', () {
+    late MediaPlayerManager manager;
+
+    setUp(() {
+      manager = MediaPlayerManager();
+    });
+
+    tearDown(() {
+      manager.dispose();
+    });
+
+    test(
+      'fetches and prints all players metadata',
+      () async {
+        // Initialize the manager
+        await manager.initialize();
+
+        // Wait a moment for metadata to be fetched
+        await Future.delayed(const Duration(seconds: 2));
+
+        // Get all players' data
+        final allPlayersMedia = manager.state.allPlayersMedia;
+        final availablePlayers = manager.state.availablePlayers;
+
+        print('\n=== Multi-Player Data Test ===');
+        print('Total available players: ${availablePlayers.length}');
+        print('Players with metadata: ${allPlayersMedia.length}');
+        print('Available players list: $availablePlayers');
+        print('');
+
+        // Print detailed info for each player
+        if (allPlayersMedia.isEmpty) {
+          print(
+            '⚠️ No player metadata available (no active players or metadata not yet fetched)',
+          );
+        } else {
+          allPlayersMedia.forEach((playerName, mediaInfo) {
+            print('🎵 Player: $playerName');
+            print('   Title: ${mediaInfo.title}');
+            print('   Artist: ${mediaInfo.artist}');
+            print('   Album: ${mediaInfo.album}');
+            print('   Status: ${mediaInfo.status}');
+            print('   Position: ${mediaInfo.position ?? 'N/A'}');
+            print('   Length: ${mediaInfo.length ?? 'N/A'}');
+            print('   Art URL: ${mediaInfo.artUrl ?? 'N/A'}');
+            print('');
+          });
+        }
+
+        // Print current selected player info
+        print('📍 Currently selected player: ${manager.state.selectedPlayer}');
+        print('   Title: ${manager.currentMedia.title}');
+        print('   Artist: ${manager.currentMedia.artist}');
+        print('   Status: ${manager.currentMedia.status}');
+        print('');
+
+        // Verify the map structure
+        expect(allPlayersMedia, isA<Map<String, MediaInfo>>());
+
+        // If there are players, verify they're in the map
+        for (final player in availablePlayers) {
+          // Note: metadata might not be available immediately for all players
+          if (allPlayersMedia.containsKey(player)) {
+            expect(allPlayersMedia[player], isA<MediaInfo>());
+            print('✅ Verified metadata for player: $player');
+          }
+        }
+
+        print('=== Test Complete ===\n');
+      },
+      timeout: const Timeout(Duration(seconds: 10)),
+    );
+  });
 }

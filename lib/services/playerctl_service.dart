@@ -144,6 +144,22 @@ class PlayerctlService
 
   Future<bool> mute([String? player]) => _volumeController.mute(player);
 
+  // Seek operations
+  Future<int?> getPosition([String? player]) =>
+      _playbackController.getPosition(player);
+
+  Future<bool> seekTo(int positionMicroseconds, [String? player]) =>
+      _playbackController.seekTo(positionMicroseconds, player);
+
+  Future<bool> seek(int offsetMicroseconds, [String? player]) =>
+      _playbackController.seek(offsetMicroseconds, player);
+
+  Future<bool> seekForward(int seconds, [String? player]) =>
+      _playbackController.seekForward(seconds, player);
+
+  Future<bool> seekBackward(int seconds, [String? player]) =>
+      _playbackController.seekBackward(seconds, player);
+
   // ICommandExecutor implementation
   @override
   Future<bool> executeCommand(String command, [String? player]) =>

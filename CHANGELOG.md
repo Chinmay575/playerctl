@@ -2,6 +2,85 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.2
+
+* **Bug Fixes**:
+  * Fixed album art images trying to download instead of displaying inline
+    * Added `Content-Disposition: inline` header to HTTP server
+    * Added cache control headers for better performance
+  * Fixed glitching when switching to inactive players
+    * Clear stale media data immediately on player switch
+    * Stop all sync timers before switching
+    * Reduced delay and improved state transitions
+  * Fixed metadata from other players overwriting current display
+    * Added player name filtering in `_updateMediaInfo`
+    * Matches player instance names (e.g., "brave.instance123")
+  * Fixed multiple players playing simultaneously
+    * Added `_pauseOtherPlayers()` helper method
+    * Automatically pauses other players when starting playback
+    * Applied to `play()`, `playPause()`, `next()`, and `previous()` methods
+  * Added missing seek methods to `MediaPlayerManager`
+    * `getPosition()`, `seekTo()`, `seek()`, `seekForward()`, `seekBackward()`
+    * Full seek functionality now available in manager API
+* All tests passing (20 tests)
+
+## 1.2.1
+
+* **Major Enhancement**: Local HTTP server for album art
+  * Added `AlbumArtServer` - HTTP server running on `0.0.0.0:8765`
+  * Automatically converts file:// URLs to local HTTP URLs (e.g., `http://0.0.0.0:8765/art/935c12.jpg`)
+  * Access album art from other devices by replacing `0.0.0.0` with your machine's IP address
+  * Example: `http://0.0.0.0:8765/art/abc123.jpg` → `http://192.168.1.100:8765/art/abc123.jpg`
+  * Spotify and other online URLs (https://) remain unchanged
+  * Server starts automatically when metadata is fetched
+  * Server stops automatically when metadata provider is disposed
+  * Supports JPEG, PNG, GIF, WebP, BMP, and SVG formats
+  * CORS enabled for cross-origin requests
+  * File caching for efficient serving
+  * Health check endpoint at `/`
+* All tests passing (20 tests)
+
+## 1.2.0
+
+* **Major Feature**: Added seek/scrub functionality for playback position control
+  * `getPosition()` - Get current playback position in microseconds
+  * `seekTo(int positionMicroseconds)` - Seek to absolute position
+  * `seek(int offsetMicroseconds)` - Seek relative to current position (supports positive/negative offset)
+  * `seekForward(int seconds)` - Convenience method to skip forward by seconds
+  * `seekBackward(int seconds)` - Convenience method to skip backward by seconds
+  * All seek methods support optional player parameter for multi-player control
+  * Position values in microseconds for precision (MPRIS standard)
+  * Returns `true` on success, `false` on failure
+  * Error handling with try-catch blocks
+* Added seek operations across all layers:
+  * `PlaybackController` - Core implementation using playerctl position commands
+  * `PlayerctlService` - Facade layer for service delegation
+  * `MediaPlayerManager` - Public API with comprehensive error handling
+* All tests passing (20 tests)
+
+## 1.1.0
+
+* **Major Feature**: Added multi-player data streaming
+  * New `allPlayersMedia` map in `PlayerState` containing `MediaInfo` for all active players
+  * Automatically fetches metadata for all available players simultaneously
+  * Updates all players' data every 3 seconds (along with selected player's real-time stream)
+  * Access any player's media info via `state.allPlayersMedia['playerName']`
+  * Useful for displaying multiple players' status in UI
+* **Auto-pause other players feature**
+  * When calling `play()`, `playPause()`, `next()`, or `previous()`, all other playing players are automatically paused
+  * Prevents audio conflicts and glitching when multiple players are active
+  * Added `_pauseOtherPlayers()` helper method
+  * Only pauses players that are currently in "Playing" status
+* Updated `PlayerState` with `allPlayersMedia` field
+  * Included in JSON serialization/deserialization
+  * Included in equality comparisons
+  * Backward compatible - defaults to empty map
+* Enhanced `_refreshAllPlayersMetadata()` method for batch metadata fetching
+* Added comprehensive test case for multi-player data verification
+  * Prints detailed metadata for all active players
+  * Verifies map structure and data integrity
+* All tests passing (20 tests)
+
 ## 1.0.4
 
 * Added album cover/art URL support (`artUrl` field in `MediaInfo`)

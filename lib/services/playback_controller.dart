@@ -90,4 +90,40 @@ class PlaybackController implements IPlaybackController {
 
     return setLoop(newStatus, player);
   }
+
+  /// Get current position in microseconds
+  Future<int?> getPosition([String? player]) async {
+    final output = await _executor.executeCommandWithOutput('position', player);
+    if (output == null) return null;
+    return int.tryParse(output.trim());
+  }
+
+  /// Seek to absolute position in microseconds
+  Future<bool> seekTo(int positionMicroseconds, [String? player]) async {
+    final args = player != null
+        ? ['--player=$player', 'position', positionMicroseconds.toString()]
+        : ['position', positionMicroseconds.toString()];
+    return _executor.executeCommandWithArgs(args);
+  }
+
+  /// Seek forward by offset in microseconds (use negative value to seek backward)
+  Future<bool> seek(int offsetMicroseconds, [String? player]) async {
+    final offset = offsetMicroseconds > 0
+        ? '+$offsetMicroseconds'
+        : offsetMicroseconds.toString();
+    final args = player != null
+        ? ['--player=$player', 'position', offset]
+        : ['position', offset];
+    return _executor.executeCommandWithArgs(args);
+  }
+
+  /// Seek forward by seconds
+  Future<bool> seekForward(int seconds, [String? player]) async {
+    return seek(seconds * 1000000, player);
+  }
+
+  /// Seek backward by seconds
+  Future<bool> seekBackward(int seconds, [String? player]) async {
+    return seek(-seconds * 1000000, player);
+  }
 }

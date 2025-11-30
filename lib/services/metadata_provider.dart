@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../interfaces/playerctl_interfaces.dart';
 import '../core/exceptions.dart';
+import 'album_art_server.dart';
 
 /// Metadata provider for fetching and streaming media metadata
 /// Follows Single Responsibility Principle
@@ -15,6 +16,9 @@ class MetadataProvider implements IMetadataProvider {
   static const int _maxRestartAttempts = 5;
   static const Duration _restartDelay = Duration(seconds: 2);
   Timer? _restartTimer;
+
+  // HTTP server for serving album art
+  final AlbumArtServer _artServer = AlbumArtServer();
 
   // Use a delimiter unlikely to appear in song titles/metadata
   static const String _delimiter = '|||';
@@ -216,11 +220,60 @@ class MetadataProvider implements IMetadataProvider {
         _lastMetadata!['artUrl'] != newMetadata['artUrl'];
   }
 
+  /// Convert file:// URL to local HTTP URL
+  String _convertFileUrlToLocalUrl(String fileUrl) {
+    try {
+      if (!fileUrl.startsWith('file://')) {
+        return fileUrl; // Return as-is if not a file URL
+      }
+
+      // Extract file path from file:// URL
+      final filePath = fileUrl.substring(7); // Remove 'file://'
+      final file = File(filePath);
+
+      if (!file.existsSync()) {
+        debugPrint('⚠️ Art file does not exist: $filePath');
+        return fileUrl; // Return original URL if file doesn't exist
+      }
+
+      // Ensure server is running
+      if (!_artServer.isRunning) {
+        // Start server synchronously (it's async but we'll handle it)
+        _startArtServer();
+      }
+
+      // Register file and get URL
+      final localUrl = _artServer.registerFile(filePath);
+      if (localUrl != null) {
+        debugPrint('� Converted file URL to local URL: $localUrl');
+        return localUrl;
+      }
+
+      return fileUrl; // Return original if registration failed
+    } catch (e) {
+      debugPrint('❌ Error converting file URL to local URL: $e');
+      return fileUrl; // Return original on error
+    }
+  }
+
+  /// Start the album art server
+  Future<void> _startArtServer() async {
+    if (!_artServer.isRunning) {
+      await _artServer.start();
+    }
+  }
+
   /// Parse metadata output from playerctl
   Map<String, String> _parseMetadata(String output) {
     try {
       final parts = output.split(_delimiter);
       if (parts.length >= 5) {
+        // Get the raw artUrl and convert file:// URLs to local HTTP URLs
+        final rawArtUrl = parts.length > 7 ? parts[7].trim() : '';
+        final convertedArtUrl = rawArtUrl.isNotEmpty
+            ? _convertFileUrlToLocalUrl(rawArtUrl)
+            : '';
+
         final metadata = {
           'title': parts[0].trim(),
           'artist': parts[1].trim(),
@@ -229,7 +282,7 @@ class MetadataProvider implements IMetadataProvider {
           'playerName': parts[4].trim(),
           'position': parts.length > 5 ? parts[5].trim() : '0',
           'length': parts.length > 6 ? parts[6].trim() : '0',
-          'artUrl': parts.length > 7 ? parts[7].trim() : '',
+          'artUrl': convertedArtUrl,
         };
 
         debugPrint(
@@ -254,6 +307,7 @@ class MetadataProvider implements IMetadataProvider {
   void dispose() {
     _restartTimer?.cancel();
     _restartTimer = null;
+    _artServer.stop();
     stopListening();
   }
 }
