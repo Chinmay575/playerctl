@@ -30,12 +30,12 @@ class MetadataProvider implements IMetadataProvider {
               '--player=$player',
               'metadata',
               '--format',
-              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}',
+              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}$_delimiter{{mpris:artUrl}}',
             ]
           : [
               'metadata',
               '--format',
-              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}',
+              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}$_delimiter{{mpris:artUrl}}',
             ];
 
       final result = await Process.run('playerctl', args, runInShell: true);
@@ -91,13 +91,13 @@ class MetadataProvider implements IMetadataProvider {
               'metadata',
               '--follow',
               '--format',
-              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}',
+              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}$_delimiter{{mpris:artUrl}}',
             ]
           : [
               'metadata',
               '--follow',
               '--format',
-              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}',
+              '{{title}}$_delimiter{{artist}}$_delimiter{{album}}$_delimiter{{status}}$_delimiter{{playerName}}$_delimiter{{position}}$_delimiter{{mpris:length}}$_delimiter{{mpris:artUrl}}',
             ];
 
       _metadataProcess = await Process.start(
@@ -212,7 +212,8 @@ class MetadataProvider implements IMetadataProvider {
         _lastMetadata!['album'] != newMetadata['album'] ||
         _lastMetadata!['status'] != newMetadata['status'] ||
         _lastMetadata!['playerName'] != newMetadata['playerName'] ||
-        _lastMetadata!['length'] != newMetadata['length'];
+        _lastMetadata!['length'] != newMetadata['length'] ||
+        _lastMetadata!['artUrl'] != newMetadata['artUrl'];
   }
 
   /// Parse metadata output from playerctl
@@ -228,12 +229,13 @@ class MetadataProvider implements IMetadataProvider {
           'playerName': parts[4].trim(),
           'position': parts.length > 5 ? parts[5].trim() : '0',
           'length': parts.length > 6 ? parts[6].trim() : '0',
+          'artUrl': parts.length > 7 ? parts[7].trim() : '',
         };
 
         debugPrint(
           '📝 Parsed metadata: title="${metadata['title']}", '
           'artist="${metadata['artist']}", status="${metadata['status']}", '
-          'player="${metadata['playerName']}"',
+          'player="${metadata['playerName']}", artUrl="${metadata['artUrl']}"',
         );
 
         return metadata;

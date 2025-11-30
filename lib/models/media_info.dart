@@ -9,6 +9,7 @@ class MediaInfo extends Equatable {
   final String playerName; // spotify, vlc, etc.
   final int? position; // Position in microseconds
   final int? length; // Length in microseconds
+  final String? artUrl; // Album art/cover URL
 
   const MediaInfo({
     this.title = 'Unknown',
@@ -18,6 +19,7 @@ class MediaInfo extends Equatable {
     this.playerName = 'Unknown',
     this.position,
     this.length,
+    this.artUrl,
   });
 
   /// Creates an empty MediaInfo (no active player)
@@ -34,6 +36,7 @@ class MediaInfo extends Equatable {
     playerName,
     position,
     length,
+    artUrl,
   ];
 
   /// Copy with method for updating specific fields
@@ -45,6 +48,7 @@ class MediaInfo extends Equatable {
     String? playerName,
     int? position,
     int? length,
+    String? artUrl,
   }) {
     return MediaInfo(
       title: title ?? this.title,
@@ -54,6 +58,7 @@ class MediaInfo extends Equatable {
       playerName: playerName ?? this.playerName,
       position: position ?? this.position,
       length: length ?? this.length,
+      artUrl: artUrl ?? this.artUrl,
     );
   }
 
@@ -67,6 +72,7 @@ class MediaInfo extends Equatable {
       playerName: json['playerName'] as String? ?? 'Unknown',
       position: json['position'] as int?,
       length: json['length'] as int?,
+      artUrl: json['artUrl'] as String?,
     );
   }
 
@@ -80,6 +86,7 @@ class MediaInfo extends Equatable {
       'playerName': playerName,
       'position': position,
       'length': length,
+      'artUrl': artUrl,
     };
   }
 

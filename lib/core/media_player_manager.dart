@@ -337,6 +337,9 @@ class MediaPlayerManager {
       playerName: metadata['playerName'] ?? 'Unknown',
       position: int.tryParse(metadata['position'] ?? '0'),
       length: int.tryParse(metadata['length'] ?? '0'),
+      artUrl: metadata['artUrl']?.isNotEmpty == true
+          ? metadata['artUrl']
+          : null,
     );
 
     _updateState(_state.copyWith(currentMedia: media, errorMessage: ''));

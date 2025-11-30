@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.0.4
+
+* Added album cover/art URL support (`artUrl` field in `MediaInfo`)
+  * Fetches `mpris:artUrl` from playerctl metadata
+  * Included in JSON serialization/deserialization
+  * Included in equality comparisons and change detection
+  * Available for displaying album artwork in UI
+* All tests passing (19 tests)
+
 ## 1.0.3
 
 * **Breaking Change**: Implemented Equatable for all models (`PlayerState` and `MediaInfo`)
