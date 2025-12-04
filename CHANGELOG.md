@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.1.1
+
+* **Bug Fixes**:
+  * **Fixed metadata not syncing to UI** (Critical Fix)
+    * Fixed bidirectional player name matching in `_updateMediaInfo`
+    * Handles mismatch between `--list-all` (returns `brave.instance3723`) and `{{playerName}}` (returns `brave`)
+    * Added debug logging for metadata filtering (`🔍`, `✅`, `⚠️` indicators)
+    * Metadata stream was working but updates were being rejected due to name mismatch
+    * Now properly matches both `selected="brave.instance3723"` with `metadata="brave"` and vice versa
+* All tests passing (20 tests)
+
 ## 1.1.0
 
 * **Major Features**:

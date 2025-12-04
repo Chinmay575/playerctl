@@ -342,15 +342,24 @@ class MediaPlayerManager {
           : null,
     );
 
+    debugPrint(
+      '🔍 Metadata received - Player: ${media.playerName}, Title: ${media.title}, Selected: ${_state.selectedPlayer}',
+    );
+
     // Only update currentMedia if this metadata is from the selected player
     // This prevents other players' metadata from overwriting the current display
     final isSelectedPlayer =
         _state.selectedPlayer.isEmpty ||
         media.playerName == _state.selectedPlayer ||
         // Also match base player name (e.g., "brave" matches "brave.instance123")
-        media.playerName.startsWith('${_state.selectedPlayer}.');
+        media.playerName.startsWith('${_state.selectedPlayer}.') ||
+        // Also match if selected player starts with base name (e.g., "brave.instance123" matches "brave")
+        _state.selectedPlayer.startsWith('${media.playerName}.');
+
+    debugPrint('🔍 isSelectedPlayer: $isSelectedPlayer');
 
     if (isSelectedPlayer) {
+      debugPrint('✅ Updating media info: ${media.title} by ${media.artist}');
       _updateState(_state.copyWith(currentMedia: media, errorMessage: ''));
     } else {
       debugPrint(
