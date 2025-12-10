@@ -51,6 +51,13 @@ A Flutter plugin for Linux that provides robust media playback control using the
 - External volume changes detected automatically
 - Debounced player switching to prevent glitches
 
+✅ **Configurable Logging**
+
+- Level-wise logging (none, error, warning, info, debug)
+- Emoji-based categorization (🔍 DEBUG, ℹ️ INFO, ⚠️ WARNING, ❌ ERROR, etc.)
+- Production-ready with silent mode
+- Customizable log levels at runtime
+
 ## Requirements
 
 - **Platform**: Linux only
@@ -375,6 +382,76 @@ This plugin follows SOLID principles with a clean, layered architecture:
 - **MediaInfo**: Metadata container
   - Title, artist, album, status, player name
   - Track position and length
+
+## Logging Configuration
+
+The playerctl package includes a comprehensive logging system with configurable log levels.
+
+### Setting Log Level
+
+There are **4 ways** to configure logging:
+
+**Method 1: Global Configuration** (Before creating managers)
+```dart
+import 'package:playerctl/playerctl.dart';
+
+void main() {
+  PlayerctlLogger.level = LogLevel.info; // Options: none, error, warning, info, debug
+  // Or: PlayerctlLogger.disableAll();  // Silent
+  // Or: PlayerctlLogger.enableAll();   // Verbose
+  runApp(MyApp());
+}
+```
+
+**Method 2: Constructor Configuration**
+```dart
+final manager = MediaPlayerManager(
+  logLevel: LogLevel.info, // Set initial log level
+);
+```
+
+**Method 3: Runtime Configuration**
+```dart
+// Change log level anytime
+manager.setLogLevel(LogLevel.error);
+
+// Check current level
+LogLevel current = manager.logLevel;
+```
+
+**Method 4: Direct Logger Access**
+```dart
+PlayerctlLogger.level = LogLevel.warning;
+```
+
+### Log Levels
+
+- **LogLevel.none** - No logging (production)
+- **LogLevel.error** - Only errors
+- **LogLevel.warning** - Warnings and errors
+- **LogLevel.info** - Info, warnings, and errors (recommended)
+- **LogLevel.debug** - All logs including verbose output
+
+**Default Behavior:**
+
+- Debug mode: `LogLevel.debug` (all logs shown)
+- Release mode: `LogLevel.error` (only errors shown)
+
+### Log Categories
+
+Logs are categorized with emoji indicators for easy identification:
+
+- 🔍 **DEBUG** - Verbose debugging information
+- ℹ️ **INFO** - General information
+- ⚠️ **WARNING** - Warning messages
+- ❌ **ERROR** - Error messages
+- ✅ **SUCCESS** - Success confirmations
+- 🎵 **METADATA** - Metadata updates
+- 📋 **PLAYER** - Player events
+- 🔊 **VOLUME** - Volume changes
+- 🔄 **SYNC** - Synchronization events
+
+See [LOGGING.md](LOGGING.md) for detailed documentation and examples.
 
 ## Advanced Usage
 

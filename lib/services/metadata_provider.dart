@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../interfaces/playerctl_interfaces.dart';
 import '../core/exceptions.dart';
+import '../core/logger.dart';
 import 'album_art_server.dart';
 
 /// Metadata provider for fetching and streaming media metadata
@@ -50,7 +51,7 @@ class MetadataProvider implements IMetadataProvider {
       }
       return {};
     } catch (e) {
-      debugPrint('Error getting current metadata: $e');
+      PlayerctlLogger.error('Error getting current metadata', 'Metadata', e);
       throw MetadataParsingException('Failed to get current metadata', e);
     }
   }

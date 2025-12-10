@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.0
+
+* **Major Features**:
+  * **Level-wise Logging System**
+    * Added `PlayerctlLogger` with configurable log levels
+    * Log levels: `none`, `error`, `warning`, `info`, `debug`
+    * Emoji-based categorization (🔍 DEBUG, ℹ️ INFO, ⚠️ WARNING, ❌ ERROR, ✅ SUCCESS, etc.)
+    * Context tags for better log organization
+    * Production-ready with silent mode
+    * **4 ways to configure logging**:
+      1. Global: `PlayerctlLogger.level = LogLevel.info`
+      2. Constructor: `MediaPlayerManager(logLevel: LogLevel.info)`
+      3. Runtime via manager: `manager.setLogLevel(LogLevel.error)`
+      4. Runtime via logger: `PlayerctlLogger.level = LogLevel.warning`
+    * Automatic defaults: debug mode = verbose, release mode = errors only
+    * Special log categories: METADATA (🎵), PLAYER (📋), VOLUME (🔊), SYNC (🔄), NETWORK (🌐)
+  * Added `logLevel` getter to MediaPlayerManager
+  * Added `setLogLevel()` method to MediaPlayerManager for runtime configuration
+  * Created comprehensive logging documentation (`LOGGING.md`)
+  * Added interactive logging configuration example (`logging_config_example.dart`)
+* **Improvements**:
+  * Replaced all `debugPrint` calls with structured logging
+  * Better error context with exception objects
+  * Cleaner console output with categorized messages
+  * Enhanced MediaPlayerManager constructor to accept optional log level
+* All tests passing (20 tests)
+
 ## 1.1.1
 
 * **Bug Fixes**:

@@ -4,6 +4,7 @@ export 'models/media_info.dart';
 export 'core/exceptions.dart';
 export 'core/player_state.dart';
 export 'core/media_player_manager.dart';
+export 'core/logger.dart';
 export 'interfaces/playerctl_interfaces.dart';
 export 'services/playerctl_service.dart';
 export 'services/command_executor.dart';

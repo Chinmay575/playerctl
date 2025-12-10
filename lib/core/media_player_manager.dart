@@ -5,6 +5,7 @@ import '../models/media_info.dart';
 import '../services/playerctl_service.dart';
 import '../core/exceptions.dart';
 import '../core/player_state.dart';
+import '../core/logger.dart';
 
 /// State-management-agnostic media player manager
 /// This class provides a clean API without forcing any specific state management solution
@@ -26,8 +27,16 @@ class MediaPlayerManager {
   bool _isRefreshing = false;
 
   /// Constructor with optional dependency injection
-  MediaPlayerManager({PlayerctlService? service})
-    : _service = service ?? PlayerctlService();
+  ///
+  /// [service] - Optional PlayerctlService instance for dependency injection
+  /// [logLevel] - Optional log level (none, error, warning, info, debug).
+  ///              Defaults to debug in debug mode, error in release mode.
+  MediaPlayerManager({PlayerctlService? service, LogLevel? logLevel})
+    : _service = service ?? PlayerctlService() {
+    if (logLevel != null) {
+      PlayerctlLogger.level = logLevel;
+    }
+  }
 
   /// Get current state (synchronous)
   PlayerState get state => _state;
@@ -59,6 +68,24 @@ class MediaPlayerManager {
   /// Get current volume
   int get volume => _state.volume;
 
+  /// Get current log level
+  LogLevel get logLevel => PlayerctlLogger.level;
+
+  /// Set log level at runtime
+  ///
+  /// This allows you to change the verbosity of logs without restarting the app.
+  /// Useful for user-configurable logging in settings.
+  ///
+  /// Example:
+  /// ```dart
+  /// manager.setLogLevel(LogLevel.info); // Show info and above
+  /// manager.setLogLevel(LogLevel.error); // Only show errors
+  /// ```
+  void setLogLevel(LogLevel level) {
+    PlayerctlLogger.level = level;
+    PlayerctlLogger.info('Log level changed to: ${level.name}', 'Config');
+  }
+
   /// Initialize the manager
   Future<void> initialize() async {
     try {
@@ -85,7 +112,7 @@ class MediaPlayerManager {
 
       // Get playerctl version for debugging
       final version = await _service.getPlayerctlVersion();
-      debugPrint('Playerctl version: $version');
+      PlayerctlLogger.info('Playerctl version: $version', 'Init');
 
       // Check for active players
       await refreshPlayerList();
@@ -118,7 +145,10 @@ class MediaPlayerManager {
   Future<void> refreshPlayerList() async {
     // Prevent concurrent refreshes
     if (_isRefreshing) {
-      debugPrint('📋 Skipping refresh - already in progress');
+      PlayerctlLogger.debug(
+        'Skipping refresh - already in progress',
+        'Refresh',
+      );
       return;
     }
 
@@ -134,25 +164,28 @@ class MediaPlayerManager {
       // Case 1: No players available
       if (players.isEmpty) {
         selected = '';
-        debugPrint('📋 No players available');
+        PlayerctlLogger.player('No players available');
       }
       // Case 2: First time selecting a player
       else if (selected.isEmpty) {
         selected = players.first;
         needsReconnect = true;
-        debugPrint('📋 Auto-selecting first player: $selected');
+        PlayerctlLogger.player('Auto-selecting first player: $selected');
       }
       // Case 3: Currently selected player no longer exists
       else if (!players.contains(selected)) {
         selected = players.first;
         needsReconnect = true;
-        debugPrint(
-          '📋 Selected player "$previousSelected" no longer available, switching to: $selected',
+        PlayerctlLogger.player(
+          'Selected player "$previousSelected" no longer available, switching to: $selected',
         );
       }
       // Case 4: Selected player still exists (no change needed)
       else {
-        debugPrint('📋 Current player "$selected" still available');
+        PlayerctlLogger.debug(
+          'Current player "$selected" still available',
+          'Player',
+        );
       }
 
       _updateState(
@@ -166,7 +199,7 @@ class MediaPlayerManager {
 
       // If we switched to a different player, reconnect
       if (needsReconnect && hasPlayer && selected != previousSelected) {
-        debugPrint('📋 Reconnecting to new player: $selected');
+        PlayerctlLogger.player('Reconnecting to new player: $selected');
 
         // Stop all current syncing
         stopListening();
@@ -183,7 +216,11 @@ class MediaPlayerManager {
             _updateMediaInfo(metadata);
           }
         } catch (e) {
-          debugPrint('Error fetching metadata for player $selected: $e');
+          PlayerctlLogger.error(
+            'Error fetching metadata for player $selected',
+            'Player',
+            e,
+          );
         }
 
         // Fetch current state
@@ -197,7 +234,7 @@ class MediaPlayerManager {
         _startMetadataRefresh();
       }
     } catch (e) {
-      debugPrint('Error refreshing player list: $e');
+      PlayerctlLogger.error('Error refreshing player list', 'Player', e);
     } finally {
       _isRefreshing = false;
     }
@@ -229,17 +266,21 @@ class MediaPlayerManager {
   /// Start periodic volume synchronization
   void _startVolumeSync() {
     _volumeSyncTimer?.cancel();
-    debugPrint('🔊 Starting volume sync timer');
+    PlayerctlLogger.sync('Starting volume sync timer', 'Volume');
     _volumeSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
-      debugPrint(
-        '🔊 Volume sync timer tick - hasActivePlayer: ${_state.hasActivePlayer}, selectedPlayer: ${_state.selectedPlayer}',
+      PlayerctlLogger.debug(
+        'Volume sync timer tick - hasActivePlayer: ${_state.hasActivePlayer}, selectedPlayer: ${_state.selectedPlayer}',
+        'Volume',
       );
       if (_state.hasActivePlayer) {
-        debugPrint('🔊 Calling updateCurrentVolume...');
+        PlayerctlLogger.debug('Calling updateCurrentVolume...', 'Volume');
         await updateCurrentVolume();
-        debugPrint('🔊 updateCurrentVolume completed');
+        PlayerctlLogger.debug('updateCurrentVolume completed', 'Volume');
       } else {
-        debugPrint('🔊 Skipping volume sync - no active player');
+        PlayerctlLogger.debug(
+          'Skipping volume sync - no active player',
+          'Volume',
+        );
       }
     });
   }
@@ -253,13 +294,14 @@ class MediaPlayerManager {
   /// Start periodic metadata refresh (fallback for when stream doesn't update)
   void _startMetadataRefresh() {
     _metadataRefreshTimer?.cancel();
-    debugPrint('🔄 Starting metadata refresh timer');
+    PlayerctlLogger.sync('Starting metadata refresh timer', 'Metadata');
     _metadataRefreshTimer = Timer.periodic(const Duration(seconds: 3), (
       _,
     ) async {
       if (_state.hasActivePlayer) {
-        debugPrint(
-          '🔄 Refreshing metadata for player: ${_state.selectedPlayer}',
+        PlayerctlLogger.debug(
+          'Refreshing metadata for player: ${_state.selectedPlayer}',
+          'Metadata',
         );
         try {
           final player = _state.selectedPlayer.isNotEmpty
@@ -270,7 +312,7 @@ class MediaPlayerManager {
             _updateMediaInfo(metadata);
           }
         } catch (e) {
-          debugPrint('🔄 Error refreshing metadata: $e');
+          PlayerctlLogger.error('Error refreshing metadata', 'Metadata', e);
         }
       }
     });
@@ -305,13 +347,16 @@ class MediaPlayerManager {
                 ),
               );
             } else {
-              debugPrint('Metadata stream error: $error');
+              PlayerctlLogger.error('Metadata stream error', 'Stream', error);
               _updateState(_state.copyWith(errorMessage: error.toString()));
             }
           },
           onDone: () {
             // Stream completed/closed - this might indicate process exit
-            debugPrint('Metadata stream closed, will check for active players');
+            PlayerctlLogger.info(
+              'Metadata stream closed, will check for active players',
+              'Stream',
+            );
             // The periodic player check will handle reconnection if players are still available
           },
           cancelOnError: false, // Don't cancel on errors, let it try to recover
@@ -342,8 +387,8 @@ class MediaPlayerManager {
           : null,
     );
 
-    debugPrint(
-      '🔍 Metadata received - Player: ${media.playerName}, Title: ${media.title}, Selected: ${_state.selectedPlayer}',
+    PlayerctlLogger.metadata(
+      'Received - Player: ${media.playerName}, Title: ${media.title}, Selected: ${_state.selectedPlayer}',
     );
 
     // Only update currentMedia if this metadata is from the selected player
@@ -356,14 +401,18 @@ class MediaPlayerManager {
         // Also match if selected player starts with base name (e.g., "brave.instance123" matches "brave")
         _state.selectedPlayer.startsWith('${media.playerName}.');
 
-    debugPrint('🔍 isSelectedPlayer: $isSelectedPlayer');
+    PlayerctlLogger.debug('isSelectedPlayer: $isSelectedPlayer', 'Metadata');
 
     if (isSelectedPlayer) {
-      debugPrint('✅ Updating media info: ${media.title} by ${media.artist}');
+      PlayerctlLogger.success(
+        'Updating media info: ${media.title} by ${media.artist}',
+        'Metadata',
+      );
       _updateState(_state.copyWith(currentMedia: media, errorMessage: ''));
     } else {
-      debugPrint(
-        '⚠️ Ignoring metadata from ${media.playerName} (selected: ${_state.selectedPlayer})',
+      PlayerctlLogger.warning(
+        'Ignoring metadata from ${media.playerName} (selected: ${_state.selectedPlayer})',
+        'Metadata',
       );
     }
   }
